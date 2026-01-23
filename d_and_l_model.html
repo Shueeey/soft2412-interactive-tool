@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dictator and Lieutenants Workflow</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/motion@12.0.0/dist/motion.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border-color: #30363d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-purple: #a371f7;
+            --accent-orange: #d29922;
+            --accent-red: #f85149;
+            --accent-cyan: #39c5cf;
+            --blessed-color: #c9a227;
+            --dictator-color: #e05a33;
+            --lieutenant-color: #2a9d8f;
+            --dev-public-color: #d4d4d4;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Noise texture overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Left Panel - Diagram */
+        .diagram-panel {
+            width: 62.5%;
+            padding: 2rem;
+            position: relative;
+            background:
+                    radial-gradient(ellipse at 20% 80%, rgba(224, 90, 51, 0.08) 0%, transparent 50%),
+                    radial-gradient(ellipse at 80% 20%, rgba(201, 162, 39, 0.08) 0%, transparent 50%),
+                    var(--bg-primary);
+        }
+
+        .diagram-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .diagram-header h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .diagram-header span {
+            color: var(--accent-orange);
+        }
+
+        .diagram-header .highlight {
+            color: var(--lieutenant-color);
+        }
+
+        .diagram-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* SVG Diagram Container */
+        .diagram-container {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 8rem);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .diagram-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Repository Nodes */
+        .repo-node {
+            transition: transform 0.3s ease;
+        }
+
+        .repo-box {
+            rx: 6;
+            transition: all 0.3s ease;
+        }
+
+        .repo-label {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            fill: white;
+        }
+
+        .repo-label-dark {
+            fill: #1a1a1a;
+        }
+
+        /* Arrow Styles */
+        .arrow-line {
+            stroke-width: 2;
+            fill: none;
+            stroke: #6e7681;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            opacity: 0.35;
+            transition: all 0.3s ease;
+        }
+
+        .arrow-line.arrow-pull {
+            stroke-dasharray: 8, 5;
+        }
+
+        /* Animation highlight classes */
+        .arrow-active {
+            opacity: 1 !important;
+            stroke-width: 3 !important;
+        }
+
+        .arrow-active.arrow-push {
+            stroke: #3fb950 !important;
+        }
+
+        .arrow-active.arrow-pull {
+            stroke: #6e7681 !important;
+        }
+
+        /* Data packet animation */
+        .data-packet {
+            opacity: 0;
+        }
+
+        /* Right Panel - Instructions */
+        .instructions-panel {
+            width: 37.5%;
+            padding: 2rem;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .instructions-header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .instructions-header h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            margin-bottom: 0.5rem;
+        }
+
+        .instructions-header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Workflow Steps */
+        .workflow-steps {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .step {
+            display: flex;
+            gap: 1rem;
+            padding: 0.85rem;
+            margin-bottom: 0.5rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .step:hover {
+            background: rgba(88, 166, 255, 0.05);
+            border-color: var(--accent-blue);
+            transform: translateX(4px);
+        }
+
+        .step:hover::before {
+            background: var(--accent-blue);
+        }
+
+        .step.active {
+            background: rgba(88, 166, 255, 0.1);
+            border-color: var(--accent-blue);
+        }
+
+        .step.active::before {
+            background: var(--accent-blue);
+            width: 4px;
+        }
+
+        .step-number {
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+
+        .step:hover .step-number,
+        .step.active .step-number {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: var(--bg-primary);
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .step-description {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .step-actors {
+            display: flex;
+            gap: 0.4rem;
+            margin-top: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .actor-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .actor-dictator {
+            background: rgba(224, 90, 51, 0.2);
+            color: var(--dictator-color);
+        }
+
+        .actor-lieutenant {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--lieutenant-color);
+        }
+
+        .actor-developer {
+            background: rgba(139, 148, 158, 0.2);
+            color: var(--text-secondary);
+        }
+
+        /* Info Section */
+        .info-section {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .info-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent-purple);
+            margin-bottom: 0.5rem;
+        }
+
+        .info-list {
+            list-style: none;
+        }
+
+        .info-list li {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            padding: 0.3rem 0;
+            padding-left: 1.1rem;
+            position: relative;
+            line-height: 1.4;
+        }
+
+        .info-list li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent-green);
+            font-weight: bold;
+        }
+
+        /* Legend */
+        .legend {
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .legend-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .legend-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-line {
+            width: 35px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        .legend-push {
+            background: var(--accent-green);
+        }
+
+        .legend-pull {
+            background: repeating-linear-gradient(
+                    90deg,
+                    var(--dev-public-color),
+                    var(--dev-public-color) 8px,
+                    transparent 8px,
+                    transparent 13px
+            );
+        }
+
+        /* Animations */
+        @keyframes flowDash {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: -26; }
+        }
+
+        .arrow-animated {
+            animation: flowDash 1s linear infinite;
+        }
+
+        /* Status indicator */
+        .status-bar {
+            margin-top: 0.75rem;
+            padding: 0.6rem 0.85rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .status-bar strong {
+            color: var(--accent-cyan);
+        }
+
+        /* Scrollbar styling */
+        .workflow-steps::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .workflow-steps::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+            border-radius: 3px;
+        }
+
+        .workflow-steps::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .workflow-steps::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Navigation link */
+        .nav-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Left Panel - Diagram -->
+    <div class="diagram-panel">
+        <div class="diagram-header">
+            <h1><span>Dictator</span> & <span class="highlight">Lieutenants</span> Workflow</h1>
+            <p class="diagram-subtitle">Click on workflow steps to see the animation • Variation of multiple-repository workflow</p>
+        </div>
+        <div class="diagram-container">
+            <svg class="diagram-svg" viewBox="0 0 800 520" preserveAspectRatio="xMidYMid meet">
+                <!-- Definitions -->
+                <defs>
+                    <!-- Arrow Markers -->
+                    <marker id="arrowhead-gray" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 L 2 5 Z" fill="#6e7681"/>
+                    </marker>
+                    <marker id="arrowhead-green" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 L 2 5 Z" fill="#3fb950"/>
+                    </marker>
+                </defs>
+
+                <!-- Background grid -->
+                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#21262d" stroke-width="1"/>
+                </pattern>
+                <rect width="100%" height="100%" fill="url(#grid)" opacity="0.5"/>
+
+                <!-- ==================== ARROWS ==================== -->
+
+                <!-- Arrow: Dictator → Blessed Repository (Push) -->
+                <line id="arrow-dictator-to-blessed" class="arrow-line arrow-push"
+                      x1="230" y1="95" x2="530" y2="95"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Blessed Repository → Lieutenant 1 (Pull/Clone - for developers to clone) -->
+                <line id="arrow-blessed-to-lt1" class="arrow-line arrow-pull"
+                      x1="580" y1="140" x2="260" y2="210"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Blessed Repository → Lieutenant 2 (Pull/Clone) -->
+                <line id="arrow-blessed-to-lt2" class="arrow-line arrow-pull"
+                      x1="620" y1="140" x2="390" y2="210"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Blessed Repository → Dev 3 (Pull/Clone - direct) -->
+                <line id="arrow-blessed-to-dev3" class="arrow-line arrow-pull"
+                      x1="660" y1="140" x2="660" y2="360"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Lieutenant 1 → Dev 1 (Pull/Clone) -->
+                <line id="arrow-lt1-to-dev1" class="arrow-line arrow-pull"
+                      x1="200" y1="280" x2="140" y2="360"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Lieutenant 2 → Dev 2 (Pull/Clone) -->
+                <line id="arrow-lt2-to-dev2" class="arrow-line arrow-pull"
+                      x1="400" y1="280" x2="400" y2="360"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Dev 1 → Lieutenant 1 (Push/Pull request) -->
+                <line id="arrow-dev1-to-lt1" class="arrow-line arrow-pull"
+                      x1="170" y1="380" x2="220" y2="300"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Dev 2 → Lieutenant 2 (Push/Pull request) -->
+                <line id="arrow-dev2-to-lt2" class="arrow-line arrow-pull"
+                      x1="430" y1="380" x2="430" y2="300"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Dev 3 → Blessed/Dictator (Pull request - shown going to dictator) -->
+                <line id="arrow-dev3-to-dictator" class="arrow-line arrow-pull"
+                      x1="630" y1="380" x2="200" y2="130"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Lieutenant 1 → Dictator (Pull request) -->
+                <line id="arrow-lt1-to-dictator" class="arrow-line arrow-pull"
+                      x1="200" y1="220" x2="150" y2="130"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Lieutenant 2 → Dictator (Pull request) -->
+                <line id="arrow-lt2-to-dictator" class="arrow-line arrow-pull"
+                      x1="360" y1="220" x2="180" y2="130"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- ==================== DATA PACKETS ==================== -->
+                <circle id="packet-1" class="data-packet" r="8" fill="#3fb950"/>
+                <circle id="packet-2" class="data-packet" r="8" fill="#6e7681"/>
+                <circle id="packet-3" class="data-packet" r="8" fill="#3fb950"/>
+                <circle id="packet-4" class="data-packet" r="8" fill="#6e7681"/>
+                <circle id="packet-5" class="data-packet" r="8" fill="#6e7681"/>
+                <circle id="packet-6" class="data-packet" r="8" fill="#6e7681"/>
+                <circle id="packet-7" class="data-packet" r="8" fill="#6e7681"/>
+                <circle id="packet-8" class="data-packet" r="8" fill="#3fb950"/>
+
+                <!-- ==================== REPOSITORY NODES ==================== -->
+
+                <!-- Dictator (Top Left) -->
+                <g id="dictator" class="repo-node">
+                    <rect class="repo-box" x="70" y="60" width="160" height="70"
+                          fill="#e05a33" stroke="none"/>
+                    <text class="repo-label" x="150" y="102" text-anchor="middle">dictator</text>
+                </g>
+
+                <!-- Blessed Repository (Top Right) -->
+                <g id="blessed-repo" class="repo-node">
+                    <rect class="repo-box" x="530" y="60" width="160" height="70"
+                          fill="#c9a227" stroke="none"/>
+                    <text class="repo-label" x="610" y="90" text-anchor="middle">blessed</text>
+                    <text class="repo-label" x="610" y="110" text-anchor="middle">repository</text>
+                </g>
+
+                <!-- Lieutenant 1 (Middle Left) -->
+                <g id="lieutenant1" class="repo-node">
+                    <rect class="repo-box" x="140" y="210" width="140" height="70"
+                          fill="#2a9d8f" stroke="none"/>
+                    <text class="repo-label" x="210" y="252" text-anchor="middle">lieutenant</text>
+                </g>
+
+                <!-- Lieutenant 2 (Middle Center) -->
+                <g id="lieutenant2" class="repo-node">
+                    <rect class="repo-box" x="330" y="210" width="140" height="70"
+                          fill="#2a9d8f" stroke="none"/>
+                    <text class="repo-label" x="400" y="252" text-anchor="middle">lieutenant</text>
+                </g>
+
+                <!-- Developer 1 Public (Bottom Left) -->
+                <g id="dev1-public" class="repo-node">
+                    <rect class="repo-box" x="60" y="380" width="140" height="70"
+                          fill="#d4d4d4" stroke="none"/>
+                    <text class="repo-label repo-label-dark" x="130" y="408" text-anchor="middle">developer</text>
+                    <text class="repo-label repo-label-dark" x="130" y="428" text-anchor="middle">public</text>
+                </g>
+
+                <!-- Developer 2 Public (Bottom Center) -->
+                <g id="dev2-public" class="repo-node">
+                    <rect class="repo-box" x="330" y="380" width="140" height="70"
+                          fill="#d4d4d4" stroke="none"/>
+                    <text class="repo-label repo-label-dark" x="400" y="408" text-anchor="middle">developer</text>
+                    <text class="repo-label repo-label-dark" x="400" y="428" text-anchor="middle">public</text>
+                </g>
+
+                <!-- Developer 3 Public (Bottom Right) -->
+                <g id="dev3-public" class="repo-node">
+                    <rect class="repo-box" x="590" y="380" width="140" height="70"
+                          fill="#d4d4d4" stroke="none"/>
+                    <text class="repo-label repo-label-dark" x="660" y="408" text-anchor="middle">developer</text>
+                    <text class="repo-label repo-label-dark" x="660" y="428" text-anchor="middle">public</text>
+                </g>
+
+            </svg>
+        </div>
+    </div>
+
+    <!-- Right Panel - Instructions -->
+    <div class="instructions-panel">
+        <div class="instructions-header">
+            <h2>// WORKFLOW STEPS</h2>
+            <p>Click each step to visualize the hierarchical data flow in the Dictator-Lieutenant model</p>
+        </div>
+
+        <div class="workflow-steps">
+            <div class="step" data-step="1">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <div class="step-title">Dictator Pushes to Blessed</div>
+                    <div class="step-description">The dictator (project maintainer) pushes to their public blessed repository.</div>
+                    <div class="step-actors">
+                        <span class="actor-tag actor-dictator">DICTATOR</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step" data-step="2">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <div class="step-title">Contributors Clone & Fork</div>
+                    <div class="step-description">Contributors clone the repository, fork their topic branch, and make changes locally.</div>
+                    <div class="step-actors">
+                        <span class="actor-tag actor-developer">DEVELOPERS</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step" data-step="3">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <div class="step-title">Contributors Push Topic Branch</div>
+                    <div class="step-description">Contributors push their topic branch to their own public repository.</div>
+                    <div class="step-actors">
+                        <span class="actor-tag actor-developer">DEVELOPERS</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step" data-step="4">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <div class="step-title">Pull Request to Lieutenant</div>
+                    <div class="step-description">Contributors send lieutenants an email/PR asking them to pull changes.</div>
+                    <div class="step-actors">
+                        <span class="actor-tag actor-developer">DEVELOPERS</span>
+                        <span class="actor-tag actor-lieutenant">LIEUTENANTS</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step" data-step="5">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                    <div class="step-title">Lieutenants Merge Locally</div>
+                    <div class="step-description">Lieutenants add contributor's repo as remote and merge to their master branch.</div>
+                    <div class="step-actors">
+                        <span class="actor-tag actor-lieutenant">LIEUTENANTS</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step" data-step="6">
+                <div class="step-number">6</div>
+                <div class="step-content">
+                    <div class="step-title">Lieutenants Request Dictator Pull</div>
+                    <div class="step-description">When sufficient changes accumulate, lieutenants send the dictator a pull request.</div>
+                    <div class="step-actors">
+                        <span class="actor-tag actor-lieutenant">LIEUTENANTS</span>
+                        <span class="actor-tag actor-dictator">DICTATOR</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step" data-step="7">
+                <div class="step-number">7</div>
+                <div class="step-content">
+                    <div class="step-title">Dictator Merges Lieutenant Changes</div>
+                    <div class="step-description">Dictator adds lieutenants' repos as remotes and merges their master branches locally.</div>
+                    <div class="step-actors">
+                        <span class="actor-tag actor-dictator">DICTATOR</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step" data-step="8">
+                <div class="step-number">8</div>
+                <div class="step-content">
+                    <div class="step-title">Dictator Pushes to Blessed</div>
+                    <div class="step-description">Dictator pushes merged changes to the blessed repository. Developers can now rebase.</div>
+                    <div class="step-actors">
+                        <span class="actor-tag actor-dictator">DICTATOR</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <div class="info-title">// KEY CHARACTERISTICS</div>
+            <ul class="info-list">
+                <li>Used by projects with hundreds of collaborators</li>
+                <li>Lieutenants oversee specific parts of the repository</li>
+                <li>Dictator delegates work and collects large subsets</li>
+                <li>Famous example: Linux Kernel development</li>
+                <li>Developers rebase their work on top of master</li>
+            </ul>
+        </div>
+
+        <div class="legend">
+            <div class="legend-title">Legend</div>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-line legend-push"></div>
+                    <span>Push (solid arrow)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line legend-pull"></div>
+                    <span>Pull / Clone (dashed arrow)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <strong>STATUS:</strong> <span id="status-text">Ready — Click a step to begin</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const { animate } = Motion;
+
+        const steps = document.querySelectorAll('.step');
+        const statusText = document.getElementById('status-text');
+
+        // Helper function to animate packet along a line
+        async function animatePacketAlongLine(packet, line, duration = 1.2) {
+            const x1 = parseFloat(line.getAttribute('x1'));
+            const y1 = parseFloat(line.getAttribute('y1'));
+            const x2 = parseFloat(line.getAttribute('x2'));
+            const y2 = parseFloat(line.getAttribute('y2'));
+
+            packet.setAttribute('cx', x1);
+            packet.setAttribute('cy', y1);
+            packet.style.opacity = '1';
+
+            await animate(
+                (progress) => {
+                    const x = x1 + (x2 - x1) * progress;
+                    const y = y1 + (y2 - y1) * progress;
+                    packet.setAttribute('cx', x);
+                    packet.setAttribute('cy', y);
+                },
+                { duration, easing: 'ease-in-out' }
+            ).finished;
+
+            packet.style.opacity = '0';
+        }
+
+        // Helper to highlight a node
+        function highlightNode(nodeId, color) {
+            const node = document.getElementById(nodeId);
+            const box = node.querySelector('.repo-box');
+            box.style.filter = `drop-shadow(0 0 20px ${color})`;
+            box.style.stroke = color;
+            box.style.strokeWidth = '3';
+        }
+
+        // Helper to activate an arrow
+        function activateArrow(arrowId, isPush = true) {
+            const arrow = document.getElementById(arrowId);
+            arrow.classList.add('arrow-active');
+            if (isPush) {
+                arrow.setAttribute('marker-end', 'url(#arrowhead-green)');
+            }
+            if (!isPush) {
+                arrow.classList.add('arrow-animated');
+            }
+        }
+
+        // Reset all visual states
+        function resetDiagram() {
+            document.querySelectorAll('.arrow-line').forEach(arrow => {
+                arrow.classList.remove('arrow-active', 'arrow-animated');
+                arrow.setAttribute('marker-end', 'url(#arrowhead-gray)');
+            });
+
+            document.querySelectorAll('.data-packet').forEach(packet => {
+                packet.style.opacity = '0';
+            });
+
+            document.querySelectorAll('.repo-box').forEach(box => {
+                box.style.filter = 'none';
+                box.style.stroke = 'none';
+                box.style.strokeWidth = '0';
+            });
+        }
+
+        // Animation sequences for each step
+        const animations = {
+            1: async () => {
+                statusText.textContent = 'Dictator pushing to blessed repository...';
+
+                highlightNode('dictator', '#e05a33');
+                await new Promise(r => setTimeout(r, 300));
+                highlightNode('blessed-repo', '#c9a227');
+
+                activateArrow('arrow-dictator-to-blessed', true);
+
+                const packet = document.getElementById('packet-1');
+                const line = document.getElementById('arrow-dictator-to-blessed');
+                await animatePacketAlongLine(packet, line);
+
+                statusText.textContent = 'Step 1 complete: Code pushed to blessed repository';
+            },
+
+            2: async () => {
+                statusText.textContent = 'Contributors cloning the blessed repository...';
+
+                highlightNode('blessed-repo', '#c9a227');
+                await new Promise(r => setTimeout(r, 300));
+                highlightNode('lieutenant1', '#2a9d8f');
+                highlightNode('lieutenant2', '#2a9d8f');
+                highlightNode('dev3-public', '#888888');
+
+                activateArrow('arrow-blessed-to-lt1', false);
+                activateArrow('arrow-blessed-to-lt2', false);
+                activateArrow('arrow-blessed-to-dev3', false);
+
+                const packet = document.getElementById('packet-2');
+                const line1 = document.getElementById('arrow-blessed-to-lt1');
+                await animatePacketAlongLine(packet, line1, 0.8);
+
+                const line2 = document.getElementById('arrow-blessed-to-lt2');
+                await animatePacketAlongLine(packet, line2, 0.8);
+
+                const line3 = document.getElementById('arrow-blessed-to-dev3');
+                await animatePacketAlongLine(packet, line3, 0.8);
+
+                // Then to developers via lieutenants
+                await new Promise(r => setTimeout(r, 200));
+                highlightNode('dev1-public', '#888888');
+                highlightNode('dev2-public', '#888888');
+
+                activateArrow('arrow-lt1-to-dev1', false);
+                activateArrow('arrow-lt2-to-dev2', false);
+
+                const line4 = document.getElementById('arrow-lt1-to-dev1');
+                await animatePacketAlongLine(packet, line4, 0.6);
+
+                const line5 = document.getElementById('arrow-lt2-to-dev2');
+                await animatePacketAlongLine(packet, line5, 0.6);
+
+                statusText.textContent = 'Step 2 complete: Repository cloned, developers create topic branches';
+            },
+
+            3: async () => {
+                statusText.textContent = 'Contributors pushing topic branches to public repos...';
+
+                highlightNode('dev1-public', '#888888');
+                highlightNode('dev2-public', '#888888');
+                highlightNode('dev3-public', '#888888');
+
+                // Visual pulse to show local work being pushed
+                const nodes = ['dev1-public', 'dev2-public', 'dev3-public'];
+                for (const nodeId of nodes) {
+                    const node = document.getElementById(nodeId);
+                    const box = node.querySelector('.repo-box');
+                    await animate(box,
+                        { filter: ['drop-shadow(0 0 10px #888)', 'drop-shadow(0 0 25px #3fb950)', 'drop-shadow(0 0 15px #888)'] },
+                        { duration: 0.5, easing: 'ease-in-out' }
+                    ).finished;
+                }
+
+                statusText.textContent = 'Step 3 complete: Topic branches pushed to public repositories';
+            },
+
+            4: async () => {
+                statusText.textContent = 'Contributors sending pull requests to lieutenants...';
+
+                highlightNode('dev1-public', '#888888');
+                highlightNode('dev2-public', '#888888');
+                await new Promise(r => setTimeout(r, 300));
+                highlightNode('lieutenant1', '#2a9d8f');
+                highlightNode('lieutenant2', '#2a9d8f');
+
+                activateArrow('arrow-dev1-to-lt1', false);
+                activateArrow('arrow-dev2-to-lt2', false);
+
+                // Notification pulse on lieutenants
+                const lt1 = document.getElementById('lieutenant1').querySelector('.repo-box');
+                const lt2 = document.getElementById('lieutenant2').querySelector('.repo-box');
+
+                await animate(lt1,
+                    { filter: ['drop-shadow(0 0 20px #2a9d8f)', 'drop-shadow(0 0 35px #39c5cf)', 'drop-shadow(0 0 20px #2a9d8f)'] },
+                    { duration: 0.8, easing: 'ease-in-out' }
+                ).finished;
+
+                await animate(lt2,
+                    { filter: ['drop-shadow(0 0 20px #2a9d8f)', 'drop-shadow(0 0 35px #39c5cf)', 'drop-shadow(0 0 20px #2a9d8f)'] },
+                    { duration: 0.8, easing: 'ease-in-out' }
+                ).finished;
+
+                statusText.textContent = 'Step 4 complete: Pull requests sent to lieutenants';
+            },
+
+            5: async () => {
+                statusText.textContent = 'Lieutenants merging contributor changes...';
+
+                highlightNode('dev1-public', '#888888');
+                highlightNode('dev2-public', '#888888');
+                highlightNode('lieutenant1', '#2a9d8f');
+                highlightNode('lieutenant2', '#2a9d8f');
+
+                activateArrow('arrow-dev1-to-lt1', false);
+                activateArrow('arrow-dev2-to-lt2', false);
+
+                const packet = document.getElementById('packet-5');
+                const line1 = document.getElementById('arrow-dev1-to-lt1');
+                await animatePacketAlongLine(packet, line1, 1);
+
+                const line2 = document.getElementById('arrow-dev2-to-lt2');
+                await animatePacketAlongLine(packet, line2, 1);
+
+                // Merge pulse on lieutenants
+                const lt1 = document.getElementById('lieutenant1').querySelector('.repo-box');
+                const lt2 = document.getElementById('lieutenant2').querySelector('.repo-box');
+
+                await animate(lt1,
+                    { filter: ['drop-shadow(0 0 20px #2a9d8f)', 'drop-shadow(0 0 30px #3fb950)', 'drop-shadow(0 0 20px #2a9d8f)'] },
+                    { duration: 0.5, easing: 'ease-in-out' }
+                ).finished;
+
+                await animate(lt2,
+                    { filter: ['drop-shadow(0 0 20px #2a9d8f)', 'drop-shadow(0 0 30px #3fb950)', 'drop-shadow(0 0 20px #2a9d8f)'] },
+                    { duration: 0.5, easing: 'ease-in-out' }
+                ).finished;
+
+                statusText.textContent = 'Step 5 complete: Lieutenants merged topic branches to master';
+            },
+
+            6: async () => {
+                statusText.textContent = 'Lieutenants sending pull requests to dictator...';
+
+                highlightNode('lieutenant1', '#2a9d8f');
+                highlightNode('lieutenant2', '#2a9d8f');
+                await new Promise(r => setTimeout(r, 300));
+                highlightNode('dictator', '#e05a33');
+
+                activateArrow('arrow-lt1-to-dictator', false);
+                activateArrow('arrow-lt2-to-dictator', false);
+
+                // Notification pulse on dictator
+                const dictator = document.getElementById('dictator').querySelector('.repo-box');
+
+                await animate(dictator,
+                    { filter: ['drop-shadow(0 0 20px #e05a33)', 'drop-shadow(0 0 40px #39c5cf)', 'drop-shadow(0 0 20px #e05a33)'] },
+                    { duration: 1, easing: 'ease-in-out' }
+                ).finished;
+
+                statusText.textContent = 'Step 6 complete: Lieutenants requested dictator pull';
+            },
+
+            7: async () => {
+                statusText.textContent = 'Dictator merging lieutenant changes...';
+
+                highlightNode('lieutenant1', '#2a9d8f');
+                highlightNode('lieutenant2', '#2a9d8f');
+                highlightNode('dictator', '#e05a33');
+
+                activateArrow('arrow-lt1-to-dictator', false);
+                activateArrow('arrow-lt2-to-dictator', false);
+
+                const packet = document.getElementById('packet-7');
+                const line1 = document.getElementById('arrow-lt1-to-dictator');
+                await animatePacketAlongLine(packet, line1, 1);
+
+                const line2 = document.getElementById('arrow-lt2-to-dictator');
+                await animatePacketAlongLine(packet, line2, 1);
+
+                // Also show dev3 direct contribution
+                highlightNode('dev3-public', '#888888');
+                activateArrow('arrow-dev3-to-dictator', false);
+
+                const line3 = document.getElementById('arrow-dev3-to-dictator');
+                await animatePacketAlongLine(packet, line3, 1.2);
+
+                // Merge pulse on dictator
+                const dictator = document.getElementById('dictator').querySelector('.repo-box');
+                await animate(dictator,
+                    { filter: ['drop-shadow(0 0 20px #e05a33)', 'drop-shadow(0 0 35px #3fb950)', 'drop-shadow(0 0 20px #e05a33)'] },
+                    { duration: 0.6, easing: 'ease-in-out' }
+                ).finished;
+
+                statusText.textContent = 'Step 7 complete: Dictator merged all lieutenant master branches';
+            },
+
+            8: async () => {
+                statusText.textContent = 'Dictator pushing merged changes to blessed repository...';
+
+                highlightNode('dictator', '#e05a33');
+                await new Promise(r => setTimeout(r, 300));
+                highlightNode('blessed-repo', '#c9a227');
+
+                activateArrow('arrow-dictator-to-blessed', true);
+
+                const packet = document.getElementById('packet-8');
+                const line = document.getElementById('arrow-dictator-to-blessed');
+                await animatePacketAlongLine(packet, line, 1.2);
+
+                // Final success pulse on blessed repo
+                const blessed = document.getElementById('blessed-repo').querySelector('.repo-box');
+                await animate(blessed,
+                    { filter: ['drop-shadow(0 0 20px #c9a227)', 'drop-shadow(0 0 45px #3fb950)', 'drop-shadow(0 0 25px #c9a227)'] },
+                    { duration: 0.8, easing: 'ease-in-out' }
+                ).finished;
+
+                statusText.textContent = '✓ Workflow complete: All changes integrated, developers can rebase';
+            }
+        };
+
+        // Handle step clicks
+        steps.forEach(step => {
+            step.addEventListener('click', async () => {
+                const stepNum = parseInt(step.dataset.step);
+
+                steps.forEach(s => s.classList.remove('active'));
+                step.classList.add('active');
+
+                resetDiagram();
+
+                if (animations[stepNum]) {
+                    await animations[stepNum]();
+                }
+            });
+        });
+
+        statusText.textContent = 'Ready — Click a step to begin';
+    });
+</script>
+</body>
+</html>

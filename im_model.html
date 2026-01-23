@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Integration-Manager Workflow</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/motion@12.0.0/dist/motion.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border-color: #30363d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-purple: #a371f7;
+            --accent-orange: #d29922;
+            --accent-red: #f85149;
+            --accent-cyan: #39c5cf;
+            --blessed-color: #c9a227;
+            --manager-color: #e05a33;
+            --dev-public-color: #2a9d8f;
+            --dev-private-color: #8b949e;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Noise texture overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Left Panel - Diagram */
+        .diagram-panel {
+            width: 62.5%;
+            padding: 2rem;
+            position: relative;
+            background:
+                    radial-gradient(ellipse at 20% 80%, rgba(88, 166, 255, 0.08) 0%, transparent 50%),
+                    radial-gradient(ellipse at 80% 20%, rgba(163, 113, 247, 0.08) 0%, transparent 50%),
+                    var(--bg-primary);
+        }
+
+        .diagram-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .diagram-header h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .diagram-header span {
+            color: var(--accent-purple);
+        }
+
+        .diagram-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* SVG Diagram Container */
+        .diagram-container {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 8rem);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .diagram-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Repository Nodes */
+        .repo-node {
+            transition: transform 0.3s ease;
+        }
+
+        .repo-box {
+            rx: 6;
+            transition: all 0.3s ease;
+        }
+
+        .repo-label {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            fill: white;
+        }
+
+        .repo-label-dark {
+            fill: #1a1a1a;
+        }
+
+        /* Arrow Styles */
+        .arrow-line {
+            stroke-width: 2.5;
+            fill: none;
+            stroke: #6e7681;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            opacity: 0.4;
+            transition: all 0.3s ease;
+        }
+
+        .arrow-line.arrow-pull {
+            stroke-dasharray: 8, 5;
+        }
+
+        /* Animation highlight classes */
+        .node-highlight {
+            filter: drop-shadow(0 0 15px currentColor);
+        }
+
+        .arrow-active {
+            opacity: 1 !important;
+            stroke-width: 3.5 !important;
+        }
+
+        .arrow-active.arrow-push {
+            stroke: #3fb950 !important;
+        }
+
+        .arrow-active.arrow-pull {
+            stroke: #6e7681 !important;
+        }
+
+        /* Data packet animation */
+        .data-packet {
+            opacity: 0;
+        }
+
+        /* Right Panel - Instructions */
+        .instructions-panel {
+            width: 37.5%;
+            padding: 2rem;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .instructions-header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .instructions-header h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            margin-bottom: 0.5rem;
+        }
+
+        .instructions-header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Workflow Steps */
+        .workflow-steps {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .step {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .step:hover {
+            background: rgba(88, 166, 255, 0.05);
+            border-color: var(--accent-blue);
+            transform: translateX(4px);
+        }
+
+        .step:hover::before {
+            background: var(--accent-blue);
+        }
+
+        .step.active {
+            background: rgba(88, 166, 255, 0.1);
+            border-color: var(--accent-blue);
+        }
+
+        .step.active::before {
+            background: var(--accent-blue);
+            width: 4px;
+        }
+
+        .step-number {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+
+        .step:hover .step-number,
+        .step.active .step-number {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: var(--bg-primary);
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.35rem;
+        }
+
+        .step-description {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .step-actors {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .actor-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.65rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .actor-maintainer {
+            background: rgba(224, 90, 51, 0.2);
+            color: var(--manager-color);
+        }
+
+        .actor-contributor {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--dev-public-color);
+        }
+
+        /* Info Section */
+        .info-section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .info-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-purple);
+            margin-bottom: 0.75rem;
+        }
+
+        .info-list {
+            list-style: none;
+        }
+
+        .info-list li {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            padding: 0.4rem 0;
+            padding-left: 1.25rem;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        .info-list li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent-green);
+            font-weight: bold;
+        }
+
+        /* Legend */
+        .legend {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .legend-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .legend-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-line {
+            width: 40px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        .legend-push {
+            background: var(--accent-green);
+        }
+
+        .legend-pull {
+            background: repeating-linear-gradient(
+                    90deg,
+                    var(--dev-private-color),
+                    var(--dev-private-color) 8px,
+                    transparent 8px,
+                    transparent 13px
+            );
+        }
+
+        /* Animations */
+        @keyframes flowDash {
+            0% { stroke-dashoffset: 0; }
+            100% { stroke-dashoffset: -26; }
+        }
+
+        .arrow-animated {
+            animation: flowDash 1s linear infinite;
+        }
+
+        /* Status indicator */
+        .status-bar {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .status-bar strong {
+            color: var(--accent-cyan);
+        }
+
+        /* Scrollbar styling */
+        .workflow-steps::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .workflow-steps::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+            border-radius: 3px;
+        }
+
+        .workflow-steps::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .workflow-steps::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Left Panel - Diagram -->
+    <div class="diagram-panel">
+        <div class="diagram-header">
+            <h1>Integration<span>-</span>Manager <span>Workflow</span></h1>
+            <p class="diagram-subtitle">Click on workflow steps to see the animation</p>
+        </div>
+        <div class="diagram-container">
+            <svg class="diagram-svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet">
+                <!-- Definitions -->
+                <defs>
+                    <!-- Arrow Markers -->
+                    <marker id="arrowhead-gray" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 L 2 5 Z" fill="#6e7681"/>
+                    </marker>
+                    <marker id="arrowhead-green" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 L 2 5 Z" fill="#3fb950"/>
+                    </marker>
+                </defs>
+
+                <!-- Background grid -->
+                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#21262d" stroke-width="1"/>
+                </pattern>
+                <rect width="100%" height="100%" fill="url(#grid)" opacity="0.5"/>
+
+                <!-- ==================== ARROWS ==================== -->
+
+                <!-- Arrow: Integration Manager → Blessed Repository (Push) -->
+                <line id="arrow-manager-to-blessed" class="arrow-line arrow-push"
+                      x1="130" y1="330" x2="130" y2="170"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Blessed Repository → Dev 1 Public (Pull/Clone) -->
+                <line id="arrow-blessed-to-dev1-public" class="arrow-line arrow-pull"
+                      x1="210" y1="120" x2="340" y2="120"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Blessed Repository → Dev 2 Public (Pull/Clone) -->
+                <line id="arrow-blessed-to-dev2-public" class="arrow-line arrow-pull"
+                      x1="210" y1="120" x2="540" y2="120"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Dev 1 Public → Dev 1 Private (Pull/Clone) -->
+                <line id="arrow-dev1-public-to-private" class="arrow-line arrow-pull"
+                      x1="420" y1="170" x2="420" y2="310"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Dev 2 Public → Dev 2 Private (Pull/Clone) -->
+                <line id="arrow-dev2-public-to-private" class="arrow-line arrow-pull"
+                      x1="620" y1="170" x2="620" y2="310"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Dev 1 Private → Dev 1 Public (Push) -->
+                <line id="arrow-dev1-private-to-public" class="arrow-line arrow-push"
+                      x1="380" y1="330" x2="380" y2="170"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Dev 2 Private → Dev 2 Public (Push) -->
+                <line id="arrow-dev2-private-to-public" class="arrow-line arrow-push"
+                      x1="580" y1="330" x2="580" y2="170"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Dev 1 Public → Integration Manager (Pull) -->
+                <line id="arrow-dev1-public-to-manager" class="arrow-line arrow-pull"
+                      x1="340" y1="150" x2="190" y2="340"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Dev 2 Public → Integration Manager (Pull) -->
+                <line id="arrow-dev2-public-to-manager" class="arrow-line arrow-pull"
+                      x1="540" y1="150" x2="200" y2="360"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- ==================== DATA PACKETS ==================== -->
+                <circle id="packet-1" class="data-packet" r="8" fill="#3fb950"/>
+                <circle id="packet-2" class="data-packet" r="8" fill="#6e7681"/>
+                <circle id="packet-3" class="data-packet" r="8" fill="#3fb950"/>
+                <circle id="packet-4" class="data-packet" r="8" fill="#6e7681"/>
+                <circle id="packet-5" class="data-packet" r="8" fill="#6e7681"/>
+                <circle id="packet-6" class="data-packet" r="8" fill="#3fb950"/>
+
+                <!-- ==================== REPOSITORY NODES ==================== -->
+
+                <!-- Blessed Repository (Top Left) -->
+                <g id="blessed-repo" class="repo-node">
+                    <rect class="repo-box" x="50" y="80" width="160" height="70"
+                          fill="#c9a227" stroke="none"/>
+                    <text class="repo-label" x="130" y="110" text-anchor="middle">blessed</text>
+                    <text class="repo-label" x="130" y="130" text-anchor="middle">repository</text>
+                </g>
+
+                <!-- Integration Manager (Bottom Left) -->
+                <g id="integration-manager" class="repo-node">
+                    <rect class="repo-box" x="50" y="330" width="160" height="70"
+                          fill="#e05a33" stroke="none"/>
+                    <text class="repo-label" x="130" y="360" text-anchor="middle">integration</text>
+                    <text class="repo-label" x="130" y="380" text-anchor="middle">manager</text>
+                </g>
+
+                <!-- Developer 1 Public (Top Middle) -->
+                <g id="dev1-public" class="repo-node">
+                    <rect class="repo-box" x="340" y="80" width="160" height="70"
+                          fill="#2a9d8f" stroke="none"/>
+                    <text class="repo-label" x="420" y="110" text-anchor="middle">developer</text>
+                    <text class="repo-label" x="420" y="130" text-anchor="middle">public</text>
+                </g>
+
+                <!-- Developer 2 Public (Top Right) -->
+                <g id="dev2-public" class="repo-node">
+                    <rect class="repo-box" x="540" y="80" width="160" height="70"
+                          fill="#2a9d8f" stroke="none"/>
+                    <text class="repo-label" x="620" y="110" text-anchor="middle">developer</text>
+                    <text class="repo-label" x="620" y="130" text-anchor="middle">public</text>
+                </g>
+
+                <!-- Developer 1 Private (Bottom Middle) -->
+                <g id="dev1-private" class="repo-node">
+                    <rect class="repo-box" x="340" y="330" width="160" height="70"
+                          fill="#d4d4d4" stroke="none"/>
+                    <text class="repo-label repo-label-dark" x="420" y="360" text-anchor="middle">developer</text>
+                    <text class="repo-label repo-label-dark" x="420" y="380" text-anchor="middle">private</text>
+                </g>
+
+                <!-- Developer 2 Private (Bottom Right) -->
+                <g id="dev2-private" class="repo-node">
+                    <rect class="repo-box" x="540" y="330" width="160" height="70"
+                          fill="#d4d4d4" stroke="none"/>
+                    <text class="repo-label repo-label-dark" x="620" y="360" text-anchor="middle">developer</text>
+                    <text class="repo-label repo-label-dark" x="620" y="380" text-anchor="middle">private</text>
+                </g>
+
+                <!-- Action Labels (hidden by default) -->
+                <text id="label-push-1" class="action-label" x="90" y="250" fill="#3fb950" font-family="JetBrains Mono" font-size="11" font-weight="600" opacity="0">push</text>
+                <text id="label-clone-1" class="action-label" x="270" y="100" fill="#6e7681" font-family="JetBrains Mono" font-size="11" font-weight="600" opacity="0">clone</text>
+                <text id="label-clone-2" class="action-label" x="470" y="100" fill="#6e7681" font-family="JetBrains Mono" font-size="11" font-weight="600" opacity="0">clone</text>
+                <text id="label-push-2" class="action-label" x="340" y="250" fill="#3fb950" font-family="JetBrains Mono" font-size="11" font-weight="600" opacity="0">push</text>
+                <text id="label-pull-1" class="action-label" x="240" y="280" fill="#6e7681" font-family="JetBrains Mono" font-size="11" font-weight="600" opacity="0">pull</text>
+                <text id="label-push-3" class="action-label" x="90" y="250" fill="#3fb950" font-family="JetBrains Mono" font-size="11" font-weight="600" opacity="0">push</text>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Right Panel - Instructions -->
+    <div class="instructions-panel">
+        <div class="instructions-header">
+            <h2>// WORKFLOW STEPS</h2>
+            <p>Click each step to visualize the data flow in the Integration-Manager model</p>
+        </div>
+
+        <div class="workflow-steps">
+            <div class="step" data-step="1">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <div class="step-title">Maintainer Pushes to Blessed</div>
+                    <div class="step-description">The project maintainer pushes their code to the blessed (canonical) public repository.</div>
+                    <div class="step-actors">
+                        <span class="actor-tag actor-maintainer">INTEGRATION MANAGER</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step" data-step="2">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <div class="step-title">Contributors Clone Repository</div>
+                    <div class="step-description">Contributors clone the blessed repository to their own public fork and then to their private local machine.</div>
+                    <div class="step-actors">
+                        <span class="actor-tag actor-contributor">DEVELOPERS</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step" data-step="3">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <div class="step-title">Contributors Push to Public Fork</div>
+                    <div class="step-description">After making changes locally, contributors push their changes to their own public repository (fork).</div>
+                    <div class="step-actors">
+                        <span class="actor-tag actor-contributor">DEVELOPERS</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step" data-step="4">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <div class="step-title">Pull Request Notification</div>
+                    <div class="step-description">Contributors send the maintainer a notification (email/PR) asking them to pull the changes.</div>
+                    <div class="step-actors">
+                        <span class="actor-tag actor-contributor">DEVELOPERS</span>
+                        <span class="actor-tag actor-maintainer">INTEGRATION MANAGER</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step" data-step="5">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                    <div class="step-title">Maintainer Pulls & Merges</div>
+                    <div class="step-description">The maintainer adds the contributor's repo as a remote, pulls changes, tests locally, and merges them.</div>
+                    <div class="step-actors">
+                        <span class="actor-tag actor-maintainer">INTEGRATION MANAGER</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step" data-step="6">
+                <div class="step-number">6</div>
+                <div class="step-content">
+                    <div class="step-title">Push to Blessed Repository</div>
+                    <div class="step-description">The maintainer pushes the merged changes back to the blessed (canonical) repository.</div>
+                    <div class="step-actors">
+                        <span class="actor-tag actor-maintainer">INTEGRATION MANAGER</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <div class="info-title">// KEY BENEFITS</div>
+            <ul class="info-list">
+                <li>Common on GitHub, GitLab, and similar platforms</li>
+                <li>Easy to fork and push changes publicly</li>
+                <li>Developers work independently at their own pace</li>
+                <li>Contributors do not wait for integration</li>
+                <li>Maintainer controls what enters the canonical repo</li>
+            </ul>
+        </div>
+
+        <div class="legend">
+            <div class="legend-title">Legend</div>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-line legend-push"></div>
+                    <span>Push (solid arrow)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-line legend-pull"></div>
+                    <span>Pull / Clone (dashed arrow)</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <strong>STATUS:</strong> <span id="status-text">Ready — Click a step to begin</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Wait for Motion library to load
+    document.addEventListener('DOMContentLoaded', () => {
+        const { animate } = Motion;
+
+        const steps = document.querySelectorAll('.step');
+        const statusText = document.getElementById('status-text');
+
+        // Helper function to animate packet along a line
+        async function animatePacketAlongLine(packet, line, duration = 1.2) {
+            const x1 = parseFloat(line.getAttribute('x1'));
+            const y1 = parseFloat(line.getAttribute('y1'));
+            const x2 = parseFloat(line.getAttribute('x2'));
+            const y2 = parseFloat(line.getAttribute('y2'));
+
+            packet.setAttribute('cx', x1);
+            packet.setAttribute('cy', y1);
+            packet.style.opacity = '1';
+
+            await animate(
+                (progress) => {
+                    const x = x1 + (x2 - x1) * progress;
+                    const y = y1 + (y2 - y1) * progress;
+                    packet.setAttribute('cx', x);
+                    packet.setAttribute('cy', y);
+                },
+                { duration, easing: 'ease-in-out' }
+            ).finished;
+
+            packet.style.opacity = '0';
+        }
+
+        // Helper to highlight a node
+        function highlightNode(nodeId, color) {
+            const node = document.getElementById(nodeId);
+            const box = node.querySelector('.repo-box');
+            box.style.filter = `drop-shadow(0 0 20px ${color})`;
+            box.style.stroke = color;
+            box.style.strokeWidth = '3';
+        }
+
+        // Helper to activate an arrow
+        function activateArrow(arrowId, isPush = true) {
+            const arrow = document.getElementById(arrowId);
+            arrow.classList.add('arrow-active');
+            if (isPush) {
+                arrow.setAttribute('marker-end', 'url(#arrowhead-green)');
+            }
+            if (!isPush) {
+                arrow.classList.add('arrow-animated');
+            }
+        }
+
+        // Helper to show a label
+        async function showLabel(labelId) {
+            const label = document.getElementById(labelId);
+            if (label) {
+                await animate(label, { opacity: 1 }, { duration: 0.3 }).finished;
+            }
+        }
+
+        // Reset all visual states
+        function resetDiagram() {
+            // Reset all arrows
+            document.querySelectorAll('.arrow-line').forEach(arrow => {
+                arrow.classList.remove('arrow-active', 'arrow-animated');
+                arrow.setAttribute('marker-end', 'url(#arrowhead-gray)');
+            });
+
+            // Reset all labels
+            document.querySelectorAll('.action-label').forEach(label => {
+                label.style.opacity = '0';
+            });
+
+            // Reset all packets
+            document.querySelectorAll('.data-packet').forEach(packet => {
+                packet.style.opacity = '0';
+            });
+
+            // Reset node highlights
+            document.querySelectorAll('.repo-box').forEach(box => {
+                box.style.filter = 'none';
+                box.style.stroke = 'none';
+                box.style.strokeWidth = '0';
+            });
+        }
+
+        // Animation sequences for each step
+        const animations = {
+            1: async () => {
+                statusText.textContent = 'Maintainer pushing to blessed repository...';
+
+                highlightNode('integration-manager', '#e05a33');
+                await new Promise(r => setTimeout(r, 300));
+                highlightNode('blessed-repo', '#c9a227');
+
+                activateArrow('arrow-manager-to-blessed', true);
+                await showLabel('label-push-1');
+
+                const packet = document.getElementById('packet-1');
+                const line = document.getElementById('arrow-manager-to-blessed');
+                await animatePacketAlongLine(packet, line);
+
+                statusText.textContent = 'Step 1 complete: Code pushed to blessed repository';
+            },
+
+            2: async () => {
+                statusText.textContent = 'Contributors cloning the blessed repository...';
+
+                highlightNode('blessed-repo', '#c9a227');
+                await new Promise(r => setTimeout(r, 300));
+                highlightNode('dev1-public', '#2a9d8f');
+                highlightNode('dev2-public', '#2a9d8f');
+
+                // Clone to public repos
+                activateArrow('arrow-blessed-to-dev1-public', false);
+                activateArrow('arrow-blessed-to-dev2-public', false);
+                await showLabel('label-clone-1');
+                await showLabel('label-clone-2');
+
+                const packet2 = document.getElementById('packet-2');
+                const line1 = document.getElementById('arrow-blessed-to-dev1-public');
+                await animatePacketAlongLine(packet2, line1, 1);
+
+                const packet2b = document.getElementById('packet-2');
+                const line2 = document.getElementById('arrow-blessed-to-dev2-public');
+                await animatePacketAlongLine(packet2b, line2, 1);
+
+                // Then to private repos
+                await new Promise(r => setTimeout(r, 300));
+                highlightNode('dev1-private', '#888888');
+                highlightNode('dev2-private', '#888888');
+
+                activateArrow('arrow-dev1-public-to-private', false);
+                activateArrow('arrow-dev2-public-to-private', false);
+
+                const packet3 = document.getElementById('packet-2');
+                const line3 = document.getElementById('arrow-dev1-public-to-private');
+                await animatePacketAlongLine(packet3, line3, 0.8);
+
+                const packet3b = document.getElementById('packet-2');
+                const line4 = document.getElementById('arrow-dev2-public-to-private');
+                await animatePacketAlongLine(packet3b, line4, 0.8);
+
+                statusText.textContent = 'Step 2 complete: Repository cloned to developer machines';
+            },
+
+            3: async () => {
+                statusText.textContent = 'Contributors pushing changes to their public forks...';
+
+                highlightNode('dev1-private', '#888888');
+                highlightNode('dev2-private', '#888888');
+                await new Promise(r => setTimeout(r, 300));
+                highlightNode('dev1-public', '#2a9d8f');
+                highlightNode('dev2-public', '#2a9d8f');
+
+                activateArrow('arrow-dev1-private-to-public', true);
+                activateArrow('arrow-dev2-private-to-public', true);
+                await showLabel('label-push-2');
+
+                const packet = document.getElementById('packet-3');
+                const line1 = document.getElementById('arrow-dev1-private-to-public');
+                await animatePacketAlongLine(packet, line1, 1);
+
+                const packetB = document.getElementById('packet-3');
+                const line2 = document.getElementById('arrow-dev2-private-to-public');
+                await animatePacketAlongLine(packetB, line2, 1);
+
+                statusText.textContent = 'Step 3 complete: Changes pushed to public forks';
+            },
+
+            4: async () => {
+                statusText.textContent = 'Contributors sending pull request to maintainer...';
+
+                highlightNode('dev1-public', '#2a9d8f');
+                highlightNode('dev2-public', '#2a9d8f');
+                await new Promise(r => setTimeout(r, 300));
+                highlightNode('integration-manager', '#e05a33');
+
+                // Show the pull arrows to indicate notification
+                activateArrow('arrow-dev1-public-to-manager', false);
+                activateArrow('arrow-dev2-public-to-manager', false);
+
+                // Create email notification effect
+                const manager = document.getElementById('integration-manager');
+                const box = manager.querySelector('.repo-box');
+
+                await animate(box,
+                    { filter: ['drop-shadow(0 0 20px #e05a33)', 'drop-shadow(0 0 40px #39c5cf)', 'drop-shadow(0 0 20px #e05a33)'] },
+                    { duration: 1, easing: 'ease-in-out' }
+                ).finished;
+
+                statusText.textContent = 'Step 4 complete: Pull request notification sent';
+            },
+
+            5: async () => {
+                statusText.textContent = 'Maintainer pulling and merging changes...';
+
+                highlightNode('dev1-public', '#2a9d8f');
+                highlightNode('dev2-public', '#2a9d8f');
+                await new Promise(r => setTimeout(r, 300));
+                highlightNode('integration-manager', '#e05a33');
+
+                activateArrow('arrow-dev1-public-to-manager', false);
+                activateArrow('arrow-dev2-public-to-manager', false);
+                await showLabel('label-pull-1');
+
+                const packet = document.getElementById('packet-5');
+                const line1 = document.getElementById('arrow-dev1-public-to-manager');
+                await animatePacketAlongLine(packet, line1, 1.2);
+
+                const packetB = document.getElementById('packet-5');
+                const line2 = document.getElementById('arrow-dev2-public-to-manager');
+                await animatePacketAlongLine(packetB, line2, 1.2);
+
+                // Pulse to show merge
+                const manager = document.getElementById('integration-manager');
+                const box = manager.querySelector('.repo-box');
+                await animate(box,
+                    { filter: ['drop-shadow(0 0 20px #e05a33)', 'drop-shadow(0 0 35px #3fb950)', 'drop-shadow(0 0 20px #e05a33)'] },
+                    { duration: 0.6, easing: 'ease-in-out' }
+                ).finished;
+
+                statusText.textContent = 'Step 5 complete: Changes pulled, tested, and merged';
+            },
+
+            6: async () => {
+                statusText.textContent = 'Maintainer pushing merged changes to blessed repository...';
+
+                highlightNode('integration-manager', '#e05a33');
+                await new Promise(r => setTimeout(r, 300));
+                highlightNode('blessed-repo', '#c9a227');
+
+                activateArrow('arrow-manager-to-blessed', true);
+                await showLabel('label-push-3');
+
+                const packet = document.getElementById('packet-6');
+                const line = document.getElementById('arrow-manager-to-blessed');
+                await animatePacketAlongLine(packet, line, 1.2);
+
+                // Final success pulse
+                const blessed = document.getElementById('blessed-repo');
+                const box = blessed.querySelector('.repo-box');
+                await animate(box,
+                    { filter: ['drop-shadow(0 0 20px #c9a227)', 'drop-shadow(0 0 40px #3fb950)', 'drop-shadow(0 0 25px #c9a227)'] },
+                    { duration: 0.8, easing: 'ease-in-out' }
+                ).finished;
+
+                statusText.textContent = '✓ Workflow complete: Changes integrated into blessed repository';
+            }
+        };
+
+        // Handle step clicks
+        steps.forEach(step => {
+            step.addEventListener('click', async () => {
+                const stepNum = parseInt(step.dataset.step);
+
+                // Update active state
+                steps.forEach(s => s.classList.remove('active'));
+                step.classList.add('active');
+
+                // Reset diagram
+                resetDiagram();
+
+                // Run animation
+                if (animations[stepNum]) {
+                    await animations[stepNum]();
+                }
+            });
+        });
+
+        // Initial state
+        statusText.textContent = 'Ready — Click a step to begin';
+    });
+</script>
+</body>
+</html>
