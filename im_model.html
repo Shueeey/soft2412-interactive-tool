@@ -768,6 +768,10 @@
         // Helper to activate an arrow
         function activateArrow(arrowId, isPush = true) {
             const arrow = document.getElementById(arrowId);
+            arrow.classList.remove('arrow-active', 'arrow-animated');
+
+            void arrow.getBoundingClientRect();
+
             arrow.classList.add('arrow-active');
             if (isPush) {
                 arrow.setAttribute('marker-end', 'url(#arrowhead-green)');
