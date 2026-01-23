@@ -706,6 +706,8 @@
 
         const steps = document.querySelectorAll('.step');
         const statusText = document.getElementById('status-text');
+        let activeStep = null;
+
 
         // Helper function to animate packet along a line or path
         async function animatePacketAlongLine(packet, element, duration = 1.2) {
@@ -977,14 +979,23 @@
             step.addEventListener('click', async () => {
                 const stepNum = parseInt(step.dataset.step);
 
-                // Update active state
+                // CASE 1: clicking the already-active step → deselect
+                if (activeStep === stepNum) {
+                    steps.forEach(s => s.classList.remove('active'));
+                    resetDiagram();
+                    activeStep = null;
+                    statusText.textContent = 'Ready — Click a step to begin';
+                    return;
+                }
+
+                // CASE 2: clicking a new step
+                activeStep = stepNum;
+
                 steps.forEach(s => s.classList.remove('active'));
                 step.classList.add('active');
 
-                // Reset diagram
                 resetDiagram();
 
-                // Run animation
                 if (animations[stepNum]) {
                     await animations[stepNum]();
                 }
