@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git Integration Manager Workflow</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 1200px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2d3748;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .diagram-container {
+            position: relative;
+            height: 500px;
+            margin: 40px 0;
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .node {
+            position: absolute;
+            padding: 20px 30px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+        }
+
+        .node:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .blessed {
+            background: #d97706;
+            top: 20px;
+            left: 50px;
+        }
+
+        .integration-manager {
+            background: #dc2626;
+            top: 200px;
+            left: 50px;
+        }
+
+        .dev-public-1 {
+            background: #0891b2;
+            top: 20px;
+            left: 400px;
+        }
+
+        .dev-public-2 {
+            background: #0891b2;
+            top: 20px;
+            right: 50px;
+        }
+
+        .dev-private-1 {
+            background: #64748b;
+            top: 200px;
+            left: 400px;
+        }
+
+        .dev-private-2 {
+            background: #64748b;
+            top: 200px;
+            right: 50px;
+        }
+
+        .arrow {
+            position: absolute;
+            stroke: #94a3b8;
+            stroke-width: 2;
+            fill: none;
+            opacity: 0;
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+        }
+
+        .arrow-active {
+            stroke: #3b82f6;
+            stroke-width: 3;
+        }
+
+        .info-panel {
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 30px;
+            min-height: 200px;
+        }
+
+        .info-panel h2 {
+            color: #1e293b;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .info-panel p {
+            color: #475569;
+            line-height: 1.8;
+            margin-bottom: 15px;
+            font-size: 1.05em;
+        }
+
+        .info-panel ol {
+            color: #475569;
+            line-height: 1.8;
+            margin-left: 20px;
+        }
+
+        .info-panel li {
+            margin-bottom: 10px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1em;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #64748b;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #475569;
+            transform: translateY(-2px);
+        }
+
+        .step-indicator {
+            text-align: center;
+            color: #3b82f6;
+            font-weight: 600;
+            margin-bottom: 20px;
+            font-size: 1.1em;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .active-node {
+            animation: pulse 2s infinite;
+        }
+
+        svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Git Integration Manager Workflow</h1>
+    <p class="subtitle">Click through the steps to understand how the integration manager model works</p>
+
+    <div class="step-indicator" id="stepIndicator">Click "Start Walkthrough" to begin</div>
+
+    <div class="diagram-container" id="diagram">
+        <svg id="arrows"></svg>
+        <div class="node blessed" data-node="blessed">blessed<br>repository</div>
+        <div class="node integration-manager" data-node="manager">integration<br>manager</div>
+        <div class="node dev-public-1" data-node="pub1">developer<br>public</div>
+        <div class="node dev-public-2" data-node="pub2">developer<br>public</div>
+        <div class="node dev-private-1" data-node="priv1">developer<br>private</div>
+        <div class="node dev-private-2" data-node="priv2">developer<br>private</div>
+    </div>
+
+    <div class="info-panel" id="infoPanel">
+        <h2>Integration Manager Workflow</h2>
+        <p>The Integration Manager workflow is a distributed development model commonly used in open-source projects. It involves a central "blessed" repository maintained by an integration manager, with multiple developers working on their own copies.</p>
+        <p><strong>Key characteristics:</strong></p>
+        <ol>
+            <li>One person (integration manager) has write access to the blessed repository</li>
+            <li>Developers clone the blessed repository and work on their own public forks</li>
+            <li>Developers push changes to their public repositories</li>
+            <li>The integration manager pulls changes from developer repositories and merges them</li>
+        </ol>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-secondary" id="prevBtn" style="display: none;">Previous</button>
+        <button class="btn btn-primary" id="nextBtn">Start Walkthrough</button>
+        <button class="btn btn-secondary" id="resetBtn">Reset</button>
+    </div>
+</div>
+
+<script>
+    const steps = [
+        {
+            title: "Introduction",
+            description: "The Integration Manager workflow is a distributed development model commonly used in open-source projects. It involves a central 'blessed' repository maintained by an integration manager, with multiple developers working on their own copies.",
+            highlight: [],
+            arrows: []
+        },
+        {
+            title: "Step 1: The Blessed Repository",
+            description: "The workflow starts with the <strong>blessed repository</strong> - the official, authoritative version of the project. This is the source of truth that everyone works from. It's called 'blessed' because it's the canonical version that releases are made from.",
+            highlight: ['blessed'],
+            arrows: []
+        },
+        {
+            title: "Step 2: Integration Manager",
+            description: "The <strong>integration manager</strong> is the only person with write access to the blessed repository. They are responsible for reviewing contributions, deciding what gets merged, and maintaining the quality of the main codebase. This person acts as a gatekeeper for the project.",
+            highlight: ['manager'],
+            arrows: []
+        },
+        {
+            title: "Step 3: Manager Clones Blessed Repository",
+            description: "The integration manager clones the blessed repository to their local machine. This gives them a working copy where they can test and integrate changes from developers. The arrow shows this clone operation.",
+            highlight: ['blessed', 'manager'],
+            arrows: [{from: 'blessed', to: 'manager', active: true}]
+        },
+        {
+            title: "Step 4: Developers Clone & Fork",
+            description: "Developers clone the blessed repository to create their own <strong>public repositories</strong> (forks). These are hosted on platforms like GitHub or GitLab and are visible to everyone. Each developer has full control over their public fork.",
+            highlight: ['blessed', 'pub1', 'pub2'],
+            arrows: [
+                {from: 'blessed', to: 'pub1', active: true},
+                {from: 'blessed', to: 'pub2', active: true}
+            ]
+        },
+        {
+            title: "Step 5: Developers Clone Their Public Repos",
+            description: "Each developer then clones their own public repository to their local machine, creating <strong>private repositories</strong>. This is where they do their actual development work. The private repositories are on their local computers and not visible to others.",
+            highlight: ['pub1', 'pub2', 'priv1', 'priv2'],
+            arrows: [
+                {from: 'pub1', to: 'priv1', active: true},
+                {from: 'pub2', to: 'priv2', active: true}
+            ]
+        },
+        {
+            title: "Step 6: Developers Push Changes",
+            description: "After making changes in their private repositories, developers push their commits to their own public repositories. This makes their work visible and accessible to the integration manager and other developers.",
+            highlight: ['priv1', 'priv2', 'pub1', 'pub2'],
+            arrows: [
+                {from: 'priv1', to: 'pub1', active: true},
+                {from: 'priv2', to: 'pub2', active: true}
+            ]
+        },
+        {
+            title: "Step 7: Manager Pulls from Developers",
+            description: "The integration manager reviews the changes in developers' public repositories. If the changes look good and pass review, the manager pulls these changes into their local repository for testing and integration.",
+            highlight: ['pub1', 'pub2', 'manager'],
+            arrows: [
+                {from: 'pub1', to: 'manager', active: true},
+                {from: 'pub2', to: 'manager', active: true}
+            ]
+        },
+        {
+            title: "Step 8: Manager Pushes to Blessed Repository",
+            description: "After testing and integrating the changes, the integration manager pushes the merged code to the blessed repository. This makes the changes official and available for all developers to pull for their next round of work. The cycle then repeats!",
+            highlight: ['manager', 'blessed'],
+            arrows: [{from: 'manager', to: 'blessed', active: true}]
+        },
+        {
+            title: "Complete Workflow",
+            description: "This is the complete Integration Manager workflow! Key benefits include: <ol><li><strong>Quality control</strong>: One person ensures code quality</li><li><strong>Scalability</strong>: Supports many contributors without chaos</li><li><strong>Clear ownership</strong>: The blessed repository has a clear maintainer</li><li><strong>Flexibility</strong>: Developers work independently on their forks</li></ol> This model is used by many major open-source projects like the Linux kernel.",
+            highlight: ['blessed', 'manager', 'pub1', 'pub2', 'priv1', 'priv2'],
+            arrows: [
+                {from: 'blessed', to: 'manager'},
+                {from: 'blessed', to: 'pub1'},
+                {from: 'blessed', to: 'pub2'},
+                {from: 'pub1', to: 'priv1'},
+                {from: 'pub2', to: 'priv2'},
+                {from: 'priv1', to: 'pub1'},
+                {from: 'priv2', to: 'pub2'},
+                {from: 'pub1', to: 'manager'},
+                {from: 'pub2', to: 'manager'},
+                {from: 'manager', to: 'blessed'}
+            ]
+        }
+    ];
+
+    let currentStep = 0;
+    const nodePositions = {};
+
+    function initializeNodePositions() {
+        const nodes = document.querySelectorAll('.node');
+        nodes.forEach(node => {
+            const rect = node.getBoundingClientRect();
+            const containerRect = document.getElementById('diagram').getBoundingClientRect();
+            nodePositions[node.dataset.node] = {
+                x: rect.left - containerRect.left + rect.width / 2,
+                y: rect.top - containerRect.top + rect.height / 2
+            };
+        });
+    }
+
+    function createArrow(from, to) {
+        const start = nodePositions[from];
+        const end = nodePositions[to];
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const d = `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+        path.setAttribute('d', d);
+        path.setAttribute('class', 'arrow');
+        path.setAttribute('marker-end', 'url(#arrowhead)');
+
+        return path;
+    }
+
+    function initializeArrows() {
+        const svg = document.getElementById('arrows');
+
+        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        marker.setAttribute('id', 'arrowhead');
+        marker.setAttribute('markerWidth', '10');
+        marker.setAttribute('markerHeight', '10');
+        marker.setAttribute('refX', '9');
+        marker.setAttribute('refY', '3');
+        marker.setAttribute('orient', 'auto');
+
+        const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        polygon.setAttribute('points', '0 0, 10 3, 0 6');
+        polygon.setAttribute('fill', '#94a3b8');
+
+        marker.appendChild(polygon);
+        defs.appendChild(marker);
+        svg.appendChild(defs);
+    }
+
+    function showStep(stepIndex) {
+        const step = steps[stepIndex];
+        const infoPanel = document.getElementById('infoPanel');
+        const stepIndicator = document.getElementById('stepIndicator');
+
+        infoPanel.innerHTML = `<h2>${step.title}</h2><p>${step.description}</p>`;
+        stepIndicator.textContent = `Step ${stepIndex} of ${steps.length - 1}`;
+
+        document.querySelectorAll('.node').forEach(node => {
+            node.classList.remove('active-node');
+            if (step.highlight.includes(node.dataset.node)) {
+                node.classList.add('active-node');
+            }
+        });
+
+        const svg = document.getElementById('arrows');
+        svg.innerHTML = svg.querySelector('defs').outerHTML;
+
+        step.arrows.forEach(arrow => {
+            const path = createArrow(arrow.from, arrow.to);
+            if (arrow.active) {
+                path.classList.add('arrow-active');
+            }
+            svg.appendChild(path);
+
+            anime({
+                targets: path,
+                strokeDashoffset: [1000, 0],
+                opacity: [0, 1],
+                easing: 'easeInOutQuad',
+                duration: 1000
+            });
+        });
+
+        document.getElementById('prevBtn').style.display = stepIndex > 0 ? 'inline-block' : 'none';
+        document.getElementById('nextBtn').textContent = stepIndex === steps.length - 1 ? 'Restart' : 'Next Step';
+    }
+
+    function initializeAnimation() {
+        const nodes = document.querySelectorAll('.node');
+
+        anime({
+            targets: nodes,
+            opacity: [0, 1],
+            translateY: [-20, 0],
+            delay: anime.stagger(100),
+            easing: 'easeOutQuad',
+            duration: 600
+        });
+    }
+
+    document.getElementById('nextBtn').addEventListener('click', () => {
+        if (currentStep === steps.length - 1) {
+            currentStep = 0;
+        } else {
+            currentStep++;
+        }
+        showStep(currentStep);
+    });
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+        if (currentStep > 0) {
+            currentStep--;
+            showStep(currentStep);
+        }
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+        currentStep = 0;
+        showStep(currentStep);
+    });
+
+    document.querySelectorAll('.node').forEach(node => {
+        node.addEventListener('click', () => {
+            const nodeName = node.dataset.node;
+            let relevantStep = -1;
+
+            for (let i = 0; i < steps.length; i++) {
+                if (steps[i].highlight.includes(nodeName)) {
+                    relevantStep = i;
+                    break;
+                }
+            }
+
+            if (relevantStep !== -1) {
+                currentStep = relevantStep;
+                showStep(currentStep);
+            }
+        });
+    });
+
+    window.addEventListener('load', () => {
+        initializeNodePositions();
+        initializeArrows();
+        initializeAnimation();
+        showStep(0);
+    });
+
+    window.addEventListener('resize', () => {
+        initializeNodePositions();
+        showStep(currentStep);
+    });
+</script>
+</body>
+</html>
