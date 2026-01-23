@@ -522,10 +522,7 @@
                       x1="620" y1="140" x2="390" y2="210"
                       marker-end="url(#arrowhead-gray)"/>
 
-                <!-- Arrow: Blessed Repository → Dev 3 (Pull/Clone - direct) -->
-                <line id="arrow-blessed-to-dev3" class="arrow-line arrow-pull"
-                      x1="660" y1="140" x2="660" y2="360"
-                      marker-end="url(#arrowhead-gray)"/>
+
 
                 <!-- Arrow: Lieutenant 1 → Dev 1 (Pull/Clone) -->
                 <line id="arrow-lt1-to-dev1" class="arrow-line arrow-pull"
@@ -860,7 +857,6 @@
 
                 activateArrow('arrow-blessed-to-lt1', false);
                 activateArrow('arrow-blessed-to-lt2', false);
-                activateArrow('arrow-blessed-to-dev3', false);
 
                 const packet = document.getElementById('packet-2');
                 const line1 = document.getElementById('arrow-blessed-to-lt1');
@@ -869,8 +865,7 @@
                 const line2 = document.getElementById('arrow-blessed-to-lt2');
                 await animatePacketAlongLine(packet, line2, 0.8);
 
-                const line3 = document.getElementById('arrow-blessed-to-dev3');
-                await animatePacketAlongLine(packet, line3, 0.8);
+
 
                 // Then to developers via lieutenants
                 await new Promise(r => setTimeout(r, 200));
