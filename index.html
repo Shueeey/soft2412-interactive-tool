@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Integration-Manager Workflow</title>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/motion@12.0.0/dist/motion.js"></script>
     <style>
         :root {
@@ -21,9 +21,10 @@
             --accent-orange: #d29922;
             --accent-red: #f85149;
             --accent-cyan: #39c5cf;
-            --maintainer-color: #f78166;
-            --contributor-color: #7ee787;
-            --blessed-color: #a5d6ff;
+            --blessed-color: #c9a227;
+            --manager-color: #e05a33;
+            --dev-public-color: #2a9d8f;
+            --dev-private-color: #8b949e;
         }
 
         * {
@@ -110,85 +111,56 @@
 
         /* Repository Nodes */
         .repo-node {
-            cursor: pointer;
             transition: transform 0.3s ease;
         }
 
-        .repo-node:hover {
-            transform: scale(1.02);
-        }
-
         .repo-box {
-            fill: var(--bg-tertiary);
-            stroke: var(--border-color);
-            stroke-width: 2;
-            rx: 12;
+            rx: 6;
             transition: all 0.3s ease;
         }
 
-        .repo-node:hover .repo-box {
-            stroke-width: 3;
-        }
-
-        .repo-icon {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 24px;
-        }
-
         .repo-label {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: 'DM Sans', sans-serif;
             font-size: 14px;
             font-weight: 600;
-            fill: var(--text-primary);
+            fill: white;
         }
 
-        .repo-sublabel {
-            font-family: 'DM Sans', sans-serif;
-            font-size: 11px;
-            fill: var(--text-secondary);
+        .repo-label-dark {
+            fill: #1a1a1a;
         }
 
         /* Arrow Styles */
-        .arrow-push {
-            stroke-width: 3;
+        .arrow-line {
+            stroke-width: 2.5;
             fill: none;
+            stroke: #6e7681;
             stroke-linecap: round;
             stroke-linejoin: round;
+            opacity: 0.4;
+            transition: all 0.3s ease;
         }
 
-        .arrow-pull {
-            stroke-width: 3;
-            fill: none;
-            stroke-dasharray: 8, 6;
-            stroke-linecap: round;
-            stroke-linejoin: round;
-        }
-
-        .arrow-marker {
-            fill: currentColor;
+        .arrow-line.arrow-pull {
+            stroke-dasharray: 8, 5;
         }
 
         /* Animation highlight classes */
-        .highlight-maintainer .repo-box {
-            stroke: var(--maintainer-color) !important;
-            stroke-width: 4 !important;
-            filter: drop-shadow(0 0 20px rgba(247, 129, 102, 0.5));
-        }
-
-        .highlight-contributor .repo-box {
-            stroke: var(--contributor-color) !important;
-            stroke-width: 4 !important;
-            filter: drop-shadow(0 0 20px rgba(126, 231, 135, 0.5));
-        }
-
-        .highlight-blessed .repo-box {
-            stroke: var(--blessed-color) !important;
-            stroke-width: 4 !important;
-            filter: drop-shadow(0 0 20px rgba(165, 214, 255, 0.5));
+        .node-highlight {
+            filter: drop-shadow(0 0 15px currentColor);
         }
 
         .arrow-active {
             opacity: 1 !important;
+            stroke-width: 3.5 !important;
+        }
+
+        .arrow-active.arrow-push {
+            stroke: #3fb950 !important;
+        }
+
+        .arrow-active.arrow-pull {
+            stroke: #6e7681 !important;
         }
 
         /* Data packet animation */
@@ -334,13 +306,13 @@
         }
 
         .actor-maintainer {
-            background: rgba(247, 129, 102, 0.2);
-            color: var(--maintainer-color);
+            background: rgba(224, 90, 51, 0.2);
+            color: var(--manager-color);
         }
 
         .actor-contributor {
-            background: rgba(126, 231, 135, 0.2);
-            color: var(--contributor-color);
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--dev-public-color);
         }
 
         /* Info Section */
@@ -424,22 +396,17 @@
         .legend-pull {
             background: repeating-linear-gradient(
                     90deg,
-                    var(--accent-orange),
-                    var(--accent-orange) 8px,
+                    var(--dev-private-color),
+                    var(--dev-private-color) 8px,
                     transparent 8px,
-                    transparent 14px
+                    transparent 13px
             );
         }
 
         /* Animations */
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
         @keyframes flowDash {
             0% { stroke-dashoffset: 0; }
-            100% { stroke-dashoffset: -28; }
+            100% { stroke-dashoffset: -26; }
         }
 
         .arrow-animated {
@@ -491,45 +458,16 @@
             <p class="diagram-subtitle">Click on workflow steps to see the animation</p>
         </div>
         <div class="diagram-container">
-            <svg class="diagram-svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+            <svg class="diagram-svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet">
                 <!-- Definitions -->
                 <defs>
-                    <!-- Push Arrow Markers -->
-                    <marker id="arrowhead-green" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-                        <path d="M 0 0 L 12 6 L 0 12 L 3 6 Z" fill="#3fb950"/>
+                    <!-- Arrow Markers -->
+                    <marker id="arrowhead-gray" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 L 2 5 Z" fill="#6e7681"/>
                     </marker>
-                    <marker id="arrowhead-orange" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-                        <path d="M 0 0 L 12 6 L 0 12 L 3 6 Z" fill="#d29922"/>
+                    <marker id="arrowhead-green" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+                        <path d="M 0 0 L 10 5 L 0 10 L 2 5 Z" fill="#3fb950"/>
                     </marker>
-                    <marker id="arrowhead-blue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-                        <path d="M 0 0 L 12 6 L 0 12 L 3 6 Z" fill="#58a6ff"/>
-                    </marker>
-                    <marker id="arrowhead-cyan" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
-                        <path d="M 0 0 L 12 6 L 0 12 L 3 6 Z" fill="#39c5cf"/>
-                    </marker>
-
-                    <!-- Glow filters -->
-                    <filter id="glow-green" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-                        <feMerge>
-                            <feMergeNode in="coloredBlur"/>
-                            <feMergeNode in="SourceGraphic"/>
-                        </feMerge>
-                    </filter>
-                    <filter id="glow-orange" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-                        <feMerge>
-                            <feMergeNode in="coloredBlur"/>
-                            <feMergeNode in="SourceGraphic"/>
-                        </feMerge>
-                    </filter>
-
-                    <!-- Data packet gradient -->
-                    <linearGradient id="packet-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" style="stop-color:#3fb950;stop-opacity:0"/>
-                        <stop offset="50%" style="stop-color:#3fb950;stop-opacity:1"/>
-                        <stop offset="100%" style="stop-color:#3fb950;stop-opacity:0"/>
-                    </linearGradient>
                 </defs>
 
                 <!-- Background grid -->
@@ -538,96 +476,118 @@
                 </pattern>
                 <rect width="100%" height="100%" fill="url(#grid)" opacity="0.5"/>
 
-                <!-- Connection Lines (drawn first, behind nodes) -->
-                <!-- Arrow 1: Maintainer Private → Blessed Repo (PUSH - solid) -->
-                <path id="arrow-1" class="arrow-push" d="M 200 250 Q 200 140 400 140"
-                      stroke="#3fb950" marker-end="url(#arrowhead-green)" opacity="0.3"/>
+                <!-- ==================== ARROWS ==================== -->
 
-                <!-- Arrow 2: Blessed Repo → Contributor Private (Clone/PULL - dashed) -->
-                <path id="arrow-2" class="arrow-pull" d="M 500 140 Q 700 140 700 250"
-                      stroke="#d29922" marker-end="url(#arrowhead-orange)" opacity="0.3"/>
+                <!-- Arrow: Integration Manager → Blessed Repository (Push) -->
+                <line id="arrow-manager-to-blessed" class="arrow-line arrow-push"
+                      x1="130" y1="330" x2="130" y2="170"
+                      marker-end="url(#arrowhead-gray)"/>
 
-                <!-- Arrow 3: Contributor Private → Contributor Public (PUSH - solid) -->
-                <path id="arrow-3" class="arrow-push" d="M 700 350 L 700 430"
-                      stroke="#3fb950" marker-end="url(#arrowhead-green)" opacity="0.3"/>
+                <!-- Arrow: Blessed Repository → Dev 1 Public (Pull/Clone) -->
+                <line id="arrow-blessed-to-dev1-public" class="arrow-line arrow-pull"
+                      x1="210" y1="120" x2="340" y2="120"
+                      marker-end="url(#arrowhead-gray)"/>
 
-                <!-- Arrow 4: Contributor Public → Maintainer (Email notification - dashed, curved) -->
-                <path id="arrow-4" class="arrow-pull" d="M 620 500 Q 400 550 200 450"
-                      stroke="#39c5cf" marker-end="url(#arrowhead-cyan)" opacity="0.3"/>
+                <!-- Arrow: Blessed Repository → Dev 2 Public (Pull/Clone) -->
+                <line id="arrow-blessed-to-dev2-public" class="arrow-line arrow-pull"
+                      x1="210" y1="120" x2="540" y2="120"
+                      marker-end="url(#arrowhead-gray)"/>
 
-                <!-- Arrow 5: Contributor Public → Maintainer Private (PULL - dashed) -->
-                <path id="arrow-5" class="arrow-pull" d="M 600 480 Q 400 420 250 350"
-                      stroke="#d29922" marker-end="url(#arrowhead-orange)" opacity="0.3"/>
+                <!-- Arrow: Dev 1 Public → Dev 1 Private (Pull/Clone) -->
+                <line id="arrow-dev1-public-to-private" class="arrow-line arrow-pull"
+                      x1="420" y1="170" x2="420" y2="310"
+                      marker-end="url(#arrowhead-gray)"/>
 
-                <!-- Arrow 6: Maintainer Private → Blessed Repo (PUSH merged changes - solid) -->
-                <path id="arrow-6" class="arrow-push" d="M 200 250 Q 200 180 350 140"
-                      stroke="#3fb950" marker-end="url(#arrowhead-green)" opacity="0.3"/>
+                <!-- Arrow: Dev 2 Public → Dev 2 Private (Pull/Clone) -->
+                <line id="arrow-dev2-public-to-private" class="arrow-line arrow-pull"
+                      x1="620" y1="170" x2="620" y2="310"
+                      marker-end="url(#arrowhead-gray)"/>
 
-                <!-- Data Packets for animations -->
-                <circle id="packet-1" class="data-packet" r="8" fill="#3fb950">
-                    <filter id="packet-glow">
-                        <feGaussianBlur stdDeviation="3"/>
-                    </filter>
-                </circle>
-                <circle id="packet-2" class="data-packet" r="8" fill="#d29922"/>
+                <!-- Arrow: Dev 1 Private → Dev 1 Public (Push) -->
+                <line id="arrow-dev1-private-to-public" class="arrow-line arrow-push"
+                      x1="380" y1="330" x2="380" y2="170"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Dev 2 Private → Dev 2 Public (Push) -->
+                <line id="arrow-dev2-private-to-public" class="arrow-line arrow-push"
+                      x1="580" y1="330" x2="580" y2="170"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Dev 1 Public → Integration Manager (Pull) -->
+                <line id="arrow-dev1-public-to-manager" class="arrow-line arrow-pull"
+                      x1="340" y1="150" x2="190" y2="340"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Dev 2 Public → Integration Manager (Pull) -->
+                <line id="arrow-dev2-public-to-manager" class="arrow-line arrow-pull"
+                      x1="540" y1="150" x2="200" y2="360"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- ==================== DATA PACKETS ==================== -->
+                <circle id="packet-1" class="data-packet" r="8" fill="#3fb950"/>
+                <circle id="packet-2" class="data-packet" r="8" fill="#6e7681"/>
                 <circle id="packet-3" class="data-packet" r="8" fill="#3fb950"/>
-                <circle id="packet-4" class="data-packet" r="8" fill="#39c5cf"/>
-                <circle id="packet-5" class="data-packet" r="8" fill="#d29922"/>
+                <circle id="packet-4" class="data-packet" r="8" fill="#6e7681"/>
+                <circle id="packet-5" class="data-packet" r="8" fill="#6e7681"/>
                 <circle id="packet-6" class="data-packet" r="8" fill="#3fb950"/>
 
-                <!-- Repository Nodes -->
+                <!-- ==================== REPOSITORY NODES ==================== -->
 
-                <!-- Blessed Repository (Top Center) -->
-                <g id="blessed-repo" class="repo-node" transform="translate(400, 80)">
-                    <rect class="repo-box" x="-100" y="-40" width="200" height="100"
-                          style="stroke: #a5d6ff;"/>
-                    <text class="repo-icon" x="0" y="-5" text-anchor="middle">📦</text>
-                    <text class="repo-label" x="0" y="18" text-anchor="middle">Blessed Repository</text>
-                    <text class="repo-sublabel" x="0" y="35" text-anchor="middle">(Canonical / Official)</text>
+                <!-- Blessed Repository (Top Left) -->
+                <g id="blessed-repo" class="repo-node">
+                    <rect class="repo-box" x="50" y="80" width="160" height="70"
+                          fill="#c9a227" stroke="none"/>
+                    <text class="repo-label" x="130" y="110" text-anchor="middle">blessed</text>
+                    <text class="repo-label" x="130" y="130" text-anchor="middle">repository</text>
                 </g>
 
-                <!-- Maintainer Private Repo (Left) -->
-                <g id="maintainer-private" class="repo-node" transform="translate(150, 300)">
-                    <rect class="repo-box" x="-100" y="-50" width="200" height="120"
-                          style="stroke: #f78166;"/>
-                    <text class="repo-icon" x="0" y="-15" text-anchor="middle">👤</text>
-                    <text class="repo-label" x="0" y="10" text-anchor="middle">Maintainer</text>
-                    <text class="repo-sublabel" x="0" y="28" text-anchor="middle">Private Repository</text>
-                    <text class="repo-sublabel" x="0" y="45" text-anchor="middle" style="fill: #f78166;">(Read + Write)</text>
+                <!-- Integration Manager (Bottom Left) -->
+                <g id="integration-manager" class="repo-node">
+                    <rect class="repo-box" x="50" y="330" width="160" height="70"
+                          fill="#e05a33" stroke="none"/>
+                    <text class="repo-label" x="130" y="360" text-anchor="middle">integration</text>
+                    <text class="repo-label" x="130" y="380" text-anchor="middle">manager</text>
                 </g>
 
-                <!-- Contributor Private Repo (Right Top) -->
-                <g id="contributor-private" class="repo-node" transform="translate(650, 300)">
-                    <rect class="repo-box" x="-100" y="-50" width="200" height="120"
-                          style="stroke: #7ee787;"/>
-                    <text class="repo-icon" x="0" y="-15" text-anchor="middle">👥</text>
-                    <text class="repo-label" x="0" y="10" text-anchor="middle">Contributor</text>
-                    <text class="repo-sublabel" x="0" y="28" text-anchor="middle">Private Repository</text>
-                    <text class="repo-sublabel" x="0" y="45" text-anchor="middle" style="fill: #7ee787;">(Local Clone)</text>
+                <!-- Developer 1 Public (Top Middle) -->
+                <g id="dev1-public" class="repo-node">
+                    <rect class="repo-box" x="340" y="80" width="160" height="70"
+                          fill="#2a9d8f" stroke="none"/>
+                    <text class="repo-label" x="420" y="110" text-anchor="middle">developer</text>
+                    <text class="repo-label" x="420" y="130" text-anchor="middle">public</text>
                 </g>
 
-                <!-- Contributor Public Repo (Right Bottom) -->
-                <g id="contributor-public" class="repo-node" transform="translate(650, 500)">
-                    <rect class="repo-box" x="-100" y="-50" width="200" height="100"
-                          style="stroke: #7ee787;"/>
-                    <text class="repo-icon" x="0" y="-10" text-anchor="middle">🌐</text>
-                    <text class="repo-label" x="0" y="12" text-anchor="middle">Contributor</text>
-                    <text class="repo-sublabel" x="0" y="30" text-anchor="middle">Public Repository</text>
+                <!-- Developer 2 Public (Top Right) -->
+                <g id="dev2-public" class="repo-node">
+                    <rect class="repo-box" x="540" y="80" width="160" height="70"
+                          fill="#2a9d8f" stroke="none"/>
+                    <text class="repo-label" x="620" y="110" text-anchor="middle">developer</text>
+                    <text class="repo-label" x="620" y="130" text-anchor="middle">public</text>
                 </g>
 
-                <!-- Email Notification Icon -->
-                <g id="email-icon" class="data-packet" transform="translate(400, 520)" opacity="0">
-                    <rect x="-30" y="-15" width="60" height="30" fill="#21262d" stroke="#39c5cf" stroke-width="2" rx="4"/>
-                    <text x="0" y="5" text-anchor="middle" fill="#39c5cf" font-size="16">✉️</text>
+                <!-- Developer 1 Private (Bottom Middle) -->
+                <g id="dev1-private" class="repo-node">
+                    <rect class="repo-box" x="340" y="330" width="160" height="70"
+                          fill="#d4d4d4" stroke="none"/>
+                    <text class="repo-label repo-label-dark" x="420" y="360" text-anchor="middle">developer</text>
+                    <text class="repo-label repo-label-dark" x="420" y="380" text-anchor="middle">private</text>
                 </g>
 
-                <!-- Action Labels -->
-                <text id="label-push-1" class="action-label" x="260" y="175" fill="#3fb950" font-family="JetBrains Mono" font-size="11" opacity="0">push</text>
-                <text id="label-clone" class="action-label" x="540" y="175" fill="#d29922" font-family="JetBrains Mono" font-size="11" opacity="0">clone</text>
-                <text id="label-push-2" class="action-label" x="720" y="395" fill="#3fb950" font-family="JetBrains Mono" font-size="11" opacity="0">push</text>
-                <text id="label-email" class="action-label" x="400" y="540" fill="#39c5cf" font-family="JetBrains Mono" font-size="11" opacity="0">pull request</text>
-                <text id="label-pull" class="action-label" x="400" y="420" fill="#d29922" font-family="JetBrains Mono" font-size="11" opacity="0">pull + merge</text>
-                <text id="label-push-3" class="action-label" x="260" y="155" fill="#3fb950" font-family="JetBrains Mono" font-size="11" opacity="0">push merged</text>
+                <!-- Developer 2 Private (Bottom Right) -->
+                <g id="dev2-private" class="repo-node">
+                    <rect class="repo-box" x="540" y="330" width="160" height="70"
+                          fill="#d4d4d4" stroke="none"/>
+                    <text class="repo-label repo-label-dark" x="620" y="360" text-anchor="middle">developer</text>
+                    <text class="repo-label repo-label-dark" x="620" y="380" text-anchor="middle">private</text>
+                </g>
+
+                <!-- Action Labels (hidden by default) -->
+                <text id="label-push-1" class="action-label" x="90" y="250" fill="#3fb950" font-family="JetBrains Mono" font-size="11" font-weight="600" opacity="0">push</text>
+                <text id="label-clone-1" class="action-label" x="270" y="100" fill="#6e7681" font-family="JetBrains Mono" font-size="11" font-weight="600" opacity="0">clone</text>
+                <text id="label-clone-2" class="action-label" x="470" y="100" fill="#6e7681" font-family="JetBrains Mono" font-size="11" font-weight="600" opacity="0">clone</text>
+                <text id="label-push-2" class="action-label" x="340" y="250" fill="#3fb950" font-family="JetBrains Mono" font-size="11" font-weight="600" opacity="0">push</text>
+                <text id="label-pull-1" class="action-label" x="240" y="280" fill="#6e7681" font-family="JetBrains Mono" font-size="11" font-weight="600" opacity="0">pull</text>
+                <text id="label-push-3" class="action-label" x="90" y="250" fill="#3fb950" font-family="JetBrains Mono" font-size="11" font-weight="600" opacity="0">push</text>
             </svg>
         </div>
     </div>
@@ -643,10 +603,10 @@
             <div class="step" data-step="1">
                 <div class="step-number">1</div>
                 <div class="step-content">
-                    <div class="step-title">Maintainer Pushes to Public</div>
+                    <div class="step-title">Maintainer Pushes to Blessed</div>
                     <div class="step-description">The project maintainer pushes their code to the blessed (canonical) public repository.</div>
                     <div class="step-actors">
-                        <span class="actor-tag actor-maintainer">MAINTAINER</span>
+                        <span class="actor-tag actor-maintainer">INTEGRATION MANAGER</span>
                     </div>
                 </div>
             </div>
@@ -654,10 +614,10 @@
             <div class="step" data-step="2">
                 <div class="step-number">2</div>
                 <div class="step-content">
-                    <div class="step-title">Contributor Clones Repository</div>
-                    <div class="step-description">A contributor clones the blessed repository to their local machine and makes changes.</div>
+                    <div class="step-title">Contributors Clone Repository</div>
+                    <div class="step-description">Contributors clone the blessed repository to their own public fork and then to their private local machine.</div>
                     <div class="step-actors">
-                        <span class="actor-tag actor-contributor">CONTRIBUTOR</span>
+                        <span class="actor-tag actor-contributor">DEVELOPERS</span>
                     </div>
                 </div>
             </div>
@@ -665,10 +625,10 @@
             <div class="step" data-step="3">
                 <div class="step-number">3</div>
                 <div class="step-content">
-                    <div class="step-title">Contributor Pushes to Fork</div>
-                    <div class="step-description">The contributor pushes their changes to their own public copy (fork) of the repository.</div>
+                    <div class="step-title">Contributors Push to Public Fork</div>
+                    <div class="step-description">After making changes locally, contributors push their changes to their own public repository (fork).</div>
                     <div class="step-actors">
-                        <span class="actor-tag actor-contributor">CONTRIBUTOR</span>
+                        <span class="actor-tag actor-contributor">DEVELOPERS</span>
                     </div>
                 </div>
             </div>
@@ -677,10 +637,10 @@
                 <div class="step-number">4</div>
                 <div class="step-content">
                     <div class="step-title">Pull Request Notification</div>
-                    <div class="step-description">The contributor sends the maintainer a notification (email/PR) asking them to pull the changes.</div>
+                    <div class="step-description">Contributors send the maintainer a notification (email/PR) asking them to pull the changes.</div>
                     <div class="step-actors">
-                        <span class="actor-tag actor-contributor">CONTRIBUTOR</span>
-                        <span class="actor-tag actor-maintainer">MAINTAINER</span>
+                        <span class="actor-tag actor-contributor">DEVELOPERS</span>
+                        <span class="actor-tag actor-maintainer">INTEGRATION MANAGER</span>
                     </div>
                 </div>
             </div>
@@ -691,7 +651,7 @@
                     <div class="step-title">Maintainer Pulls & Merges</div>
                     <div class="step-description">The maintainer adds the contributor's repo as a remote, pulls changes, tests locally, and merges them.</div>
                     <div class="step-actors">
-                        <span class="actor-tag actor-maintainer">MAINTAINER</span>
+                        <span class="actor-tag actor-maintainer">INTEGRATION MANAGER</span>
                     </div>
                 </div>
             </div>
@@ -702,7 +662,7 @@
                     <div class="step-title">Push to Blessed Repository</div>
                     <div class="step-description">The maintainer pushes the merged changes back to the blessed (canonical) repository.</div>
                     <div class="step-actors">
-                        <span class="actor-tag actor-maintainer">MAINTAINER</span>
+                        <span class="actor-tag actor-maintainer">INTEGRATION MANAGER</span>
                     </div>
                 </div>
             </div>
@@ -714,7 +674,7 @@
                 <li>Common on GitHub, GitLab, and similar platforms</li>
                 <li>Easy to fork and push changes publicly</li>
                 <li>Developers work independently at their own pace</li>
-                <li>Contributors don't wait for integration</li>
+                <li>Contributors do not wait for integration</li>
                 <li>Maintainer controls what enters the canonical repo</li>
             </ul>
         </div>
@@ -742,19 +702,70 @@
 <script>
     // Wait for Motion library to load
     document.addEventListener('DOMContentLoaded', () => {
-        const { animate, timeline } = Motion;
+        const { animate } = Motion;
 
         const steps = document.querySelectorAll('.step');
         const statusText = document.getElementById('status-text');
-        let currentAnimation = null;
-        let activeStep = null;
+
+        // Helper function to animate packet along a line
+        async function animatePacketAlongLine(packet, line, duration = 1.2) {
+            const x1 = parseFloat(line.getAttribute('x1'));
+            const y1 = parseFloat(line.getAttribute('y1'));
+            const x2 = parseFloat(line.getAttribute('x2'));
+            const y2 = parseFloat(line.getAttribute('y2'));
+
+            packet.setAttribute('cx', x1);
+            packet.setAttribute('cy', y1);
+            packet.style.opacity = '1';
+
+            await animate(
+                (progress) => {
+                    const x = x1 + (x2 - x1) * progress;
+                    const y = y1 + (y2 - y1) * progress;
+                    packet.setAttribute('cx', x);
+                    packet.setAttribute('cy', y);
+                },
+                { duration, easing: 'ease-in-out' }
+            ).finished;
+
+            packet.style.opacity = '0';
+        }
+
+        // Helper to highlight a node
+        function highlightNode(nodeId, color) {
+            const node = document.getElementById(nodeId);
+            const box = node.querySelector('.repo-box');
+            box.style.filter = `drop-shadow(0 0 20px ${color})`;
+            box.style.stroke = color;
+            box.style.strokeWidth = '3';
+        }
+
+        // Helper to activate an arrow
+        function activateArrow(arrowId, isPush = true) {
+            const arrow = document.getElementById(arrowId);
+            arrow.classList.add('arrow-active');
+            if (isPush) {
+                arrow.setAttribute('marker-end', 'url(#arrowhead-green)');
+            }
+            if (!isPush) {
+                arrow.classList.add('arrow-animated');
+            }
+        }
+
+        // Helper to show a label
+        async function showLabel(labelId) {
+            const label = document.getElementById(labelId);
+            if (label) {
+                await animate(label, { opacity: 1 }, { duration: 0.3 }).finished;
+            }
+        }
 
         // Reset all visual states
         function resetDiagram() {
-            // Reset all arrows to dim state
-            document.querySelectorAll('.arrow-push, .arrow-pull').forEach(arrow => {
-                arrow.style.opacity = '0.3';
-                arrow.classList.remove('arrow-animated');
+            // Reset all arrows
+            document.querySelectorAll('.arrow-line').forEach(arrow => {
+                arrow.classList.remove('arrow-active', 'arrow-animated');
+                arrow.setAttribute('marker-end', 'url(#arrowhead-gray)');
             });
 
             // Reset all labels
@@ -768,12 +779,11 @@
             });
 
             // Reset node highlights
-            document.querySelectorAll('.repo-node').forEach(node => {
-                node.classList.remove('highlight-maintainer', 'highlight-contributor', 'highlight-blessed');
+            document.querySelectorAll('.repo-box').forEach(box => {
+                box.style.filter = 'none';
+                box.style.stroke = 'none';
+                box.style.strokeWidth = '0';
             });
-
-            // Reset email icon
-            document.getElementById('email-icon').style.opacity = '0';
         }
 
         // Animation sequences for each step
@@ -781,269 +791,160 @@
             1: async () => {
                 statusText.textContent = 'Maintainer pushing to blessed repository...';
 
-                const maintainerNode = document.getElementById('maintainer-private');
-                const blessedNode = document.getElementById('blessed-repo');
-                const arrow = document.getElementById('arrow-1');
-                const label = document.getElementById('label-push-1');
-                const packet = document.getElementById('packet-1');
-
-                // Highlight nodes
-                maintainerNode.classList.add('highlight-maintainer');
+                highlightNode('integration-manager', '#e05a33');
                 await new Promise(r => setTimeout(r, 300));
-                blessedNode.classList.add('highlight-blessed');
+                highlightNode('blessed-repo', '#c9a227');
 
-                // Show and animate arrow
-                await animate(arrow, { opacity: 1 }, { duration: 0.3 }).finished;
+                activateArrow('arrow-manager-to-blessed', true);
+                await showLabel('label-push-1');
 
-                // Show label
-                await animate(label, { opacity: 1 }, { duration: 0.3 }).finished;
+                const packet = document.getElementById('packet-1');
+                const line = document.getElementById('arrow-manager-to-blessed');
+                await animatePacketAlongLine(packet, line);
 
-                // Animate packet along path
-                const path = arrow;
-                const pathLength = path.getTotalLength();
-
-                packet.style.opacity = '1';
-
-                await animate(
-                    (progress) => {
-                        const point = path.getPointAtLength(progress * pathLength);
-                        packet.setAttribute('cx', point.x);
-                        packet.setAttribute('cy', point.y);
-                    },
-                    { duration: 1.5, easing: 'ease-in-out' }
-                ).finished;
-
-                packet.style.opacity = '0';
                 statusText.textContent = 'Step 1 complete: Code pushed to blessed repository';
             },
 
             2: async () => {
-                statusText.textContent = 'Contributor cloning the blessed repository...';
+                statusText.textContent = 'Contributors cloning the blessed repository...';
 
-                const blessedNode = document.getElementById('blessed-repo');
-                const contributorNode = document.getElementById('contributor-private');
-                const arrow = document.getElementById('arrow-2');
-                const label = document.getElementById('label-clone');
-                const packet = document.getElementById('packet-2');
-
-                // Highlight nodes
-                blessedNode.classList.add('highlight-blessed');
+                highlightNode('blessed-repo', '#c9a227');
                 await new Promise(r => setTimeout(r, 300));
-                contributorNode.classList.add('highlight-contributor');
+                highlightNode('dev1-public', '#2a9d8f');
+                highlightNode('dev2-public', '#2a9d8f');
 
-                // Show and animate arrow
-                await animate(arrow, { opacity: 1 }, { duration: 0.3 }).finished;
-                arrow.classList.add('arrow-animated');
+                // Clone to public repos
+                activateArrow('arrow-blessed-to-dev1-public', false);
+                activateArrow('arrow-blessed-to-dev2-public', false);
+                await showLabel('label-clone-1');
+                await showLabel('label-clone-2');
 
-                // Show label
-                await animate(label, { opacity: 1 }, { duration: 0.3 }).finished;
+                const packet2 = document.getElementById('packet-2');
+                const line1 = document.getElementById('arrow-blessed-to-dev1-public');
+                await animatePacketAlongLine(packet2, line1, 1);
 
-                // Animate packet along path
-                const path = arrow;
-                const pathLength = path.getTotalLength();
+                const packet2b = document.getElementById('packet-2');
+                const line2 = document.getElementById('arrow-blessed-to-dev2-public');
+                await animatePacketAlongLine(packet2b, line2, 1);
 
-                packet.style.opacity = '1';
+                // Then to private repos
+                await new Promise(r => setTimeout(r, 300));
+                highlightNode('dev1-private', '#888888');
+                highlightNode('dev2-private', '#888888');
 
-                await animate(
-                    (progress) => {
-                        const point = path.getPointAtLength(progress * pathLength);
-                        packet.setAttribute('cx', point.x);
-                        packet.setAttribute('cy', point.y);
-                    },
-                    { duration: 1.5, easing: 'ease-in-out' }
-                ).finished;
+                activateArrow('arrow-dev1-public-to-private', false);
+                activateArrow('arrow-dev2-public-to-private', false);
 
-                packet.style.opacity = '0';
-                statusText.textContent = 'Step 2 complete: Repository cloned, contributor makes changes';
+                const packet3 = document.getElementById('packet-2');
+                const line3 = document.getElementById('arrow-dev1-public-to-private');
+                await animatePacketAlongLine(packet3, line3, 0.8);
+
+                const packet3b = document.getElementById('packet-2');
+                const line4 = document.getElementById('arrow-dev2-public-to-private');
+                await animatePacketAlongLine(packet3b, line4, 0.8);
+
+                statusText.textContent = 'Step 2 complete: Repository cloned to developer machines';
             },
 
             3: async () => {
-                statusText.textContent = 'Contributor pushing to their public fork...';
+                statusText.textContent = 'Contributors pushing changes to their public forks...';
 
-                const contributorPrivate = document.getElementById('contributor-private');
-                const contributorPublic = document.getElementById('contributor-public');
-                const arrow = document.getElementById('arrow-3');
-                const label = document.getElementById('label-push-2');
-                const packet = document.getElementById('packet-3');
-
-                // Highlight nodes
-                contributorPrivate.classList.add('highlight-contributor');
+                highlightNode('dev1-private', '#888888');
+                highlightNode('dev2-private', '#888888');
                 await new Promise(r => setTimeout(r, 300));
-                contributorPublic.classList.add('highlight-contributor');
+                highlightNode('dev1-public', '#2a9d8f');
+                highlightNode('dev2-public', '#2a9d8f');
 
-                // Show and animate arrow
-                await animate(arrow, { opacity: 1 }, { duration: 0.3 }).finished;
+                activateArrow('arrow-dev1-private-to-public', true);
+                activateArrow('arrow-dev2-private-to-public', true);
+                await showLabel('label-push-2');
 
-                // Show label
-                await animate(label, { opacity: 1 }, { duration: 0.3 }).finished;
+                const packet = document.getElementById('packet-3');
+                const line1 = document.getElementById('arrow-dev1-private-to-public');
+                await animatePacketAlongLine(packet, line1, 1);
 
-                // Animate packet along path
-                const path = arrow;
-                const pathLength = path.getTotalLength();
+                const packetB = document.getElementById('packet-3');
+                const line2 = document.getElementById('arrow-dev2-private-to-public');
+                await animatePacketAlongLine(packetB, line2, 1);
 
-                packet.style.opacity = '1';
-
-                await animate(
-                    (progress) => {
-                        const point = path.getPointAtLength(progress * pathLength);
-                        packet.setAttribute('cx', point.x);
-                        packet.setAttribute('cy', point.y);
-                    },
-                    { duration: 1, easing: 'ease-in-out' }
-                ).finished;
-
-                packet.style.opacity = '0';
-                statusText.textContent = 'Step 3 complete: Changes pushed to public fork';
+                statusText.textContent = 'Step 3 complete: Changes pushed to public forks';
             },
 
             4: async () => {
-                statusText.textContent = 'Contributor sending pull request to maintainer...';
+                statusText.textContent = 'Contributors sending pull request to maintainer...';
 
-                const contributorPublic = document.getElementById('contributor-public');
-                const maintainerNode = document.getElementById('maintainer-private');
-                const arrow = document.getElementById('arrow-4');
-                const label = document.getElementById('label-email');
-                const emailIcon = document.getElementById('email-icon');
-                const packet = document.getElementById('packet-4');
-
-                // Highlight nodes
-                contributorPublic.classList.add('highlight-contributor');
+                highlightNode('dev1-public', '#2a9d8f');
+                highlightNode('dev2-public', '#2a9d8f');
                 await new Promise(r => setTimeout(r, 300));
-                maintainerNode.classList.add('highlight-maintainer');
+                highlightNode('integration-manager', '#e05a33');
 
-                // Show and animate arrow
-                await animate(arrow, { opacity: 1 }, { duration: 0.3 }).finished;
-                arrow.classList.add('arrow-animated');
+                // Show the pull arrows to indicate notification
+                activateArrow('arrow-dev1-public-to-manager', false);
+                activateArrow('arrow-dev2-public-to-manager', false);
 
-                // Show label
-                await animate(label, { opacity: 1 }, { duration: 0.3 }).finished;
+                // Create email notification effect
+                const manager = document.getElementById('integration-manager');
+                const box = manager.querySelector('.repo-box');
 
-                // Show email icon
-                await animate(emailIcon, { opacity: 1 }, { duration: 0.3 }).finished;
-
-                // Animate packet along path
-                const path = arrow;
-                const pathLength = path.getTotalLength();
-
-                packet.style.opacity = '1';
-
-                await animate(
-                    (progress) => {
-                        const point = path.getPointAtLength(progress * pathLength);
-                        packet.setAttribute('cx', point.x);
-                        packet.setAttribute('cy', point.y);
-                    },
-                    { duration: 1.5, easing: 'ease-in-out' }
+                await animate(box,
+                    { filter: ['drop-shadow(0 0 20px #e05a33)', 'drop-shadow(0 0 40px #39c5cf)', 'drop-shadow(0 0 20px #e05a33)'] },
+                    { duration: 1, easing: 'ease-in-out' }
                 ).finished;
 
-                packet.style.opacity = '0';
-
-                // Pulse email icon
-                await animate(
-                    emailIcon,
-                    { scale: [1, 1.2, 1], opacity: [1, 1, 0.8] },
-                    { duration: 0.5, easing: 'ease-in-out' }
-                ).finished;
-
-                statusText.textContent = 'Step 4 complete: Pull request sent to maintainer';
+                statusText.textContent = 'Step 4 complete: Pull request notification sent';
             },
 
             5: async () => {
                 statusText.textContent = 'Maintainer pulling and merging changes...';
 
-                const contributorPublic = document.getElementById('contributor-public');
-                const maintainerNode = document.getElementById('maintainer-private');
-                const arrow = document.getElementById('arrow-5');
-                const label = document.getElementById('label-pull');
-                const packet = document.getElementById('packet-5');
-
-                // Highlight nodes
-                contributorPublic.classList.add('highlight-contributor');
+                highlightNode('dev1-public', '#2a9d8f');
+                highlightNode('dev2-public', '#2a9d8f');
                 await new Promise(r => setTimeout(r, 300));
-                maintainerNode.classList.add('highlight-maintainer');
+                highlightNode('integration-manager', '#e05a33');
 
-                // Show and animate arrow
-                await animate(arrow, { opacity: 1 }, { duration: 0.3 }).finished;
-                arrow.classList.add('arrow-animated');
+                activateArrow('arrow-dev1-public-to-manager', false);
+                activateArrow('arrow-dev2-public-to-manager', false);
+                await showLabel('label-pull-1');
 
-                // Show label
-                await animate(label, { opacity: 1 }, { duration: 0.3 }).finished;
+                const packet = document.getElementById('packet-5');
+                const line1 = document.getElementById('arrow-dev1-public-to-manager');
+                await animatePacketAlongLine(packet, line1, 1.2);
 
-                // Animate packet along path
-                const path = arrow;
-                const pathLength = path.getTotalLength();
+                const packetB = document.getElementById('packet-5');
+                const line2 = document.getElementById('arrow-dev2-public-to-manager');
+                await animatePacketAlongLine(packetB, line2, 1.2);
 
-                packet.style.opacity = '1';
-
-                await animate(
-                    (progress) => {
-                        const point = path.getPointAtLength(progress * pathLength);
-                        packet.setAttribute('cx', point.x);
-                        packet.setAttribute('cy', point.y);
-                    },
-                    { duration: 1.5, easing: 'ease-in-out' }
+                // Pulse to show merge
+                const manager = document.getElementById('integration-manager');
+                const box = manager.querySelector('.repo-box');
+                await animate(box,
+                    { filter: ['drop-shadow(0 0 20px #e05a33)', 'drop-shadow(0 0 35px #3fb950)', 'drop-shadow(0 0 20px #e05a33)'] },
+                    { duration: 0.6, easing: 'ease-in-out' }
                 ).finished;
 
-                packet.style.opacity = '0';
-
-                // Pulse maintainer node to show merge
-                const maintainerBox = maintainerNode.querySelector('.repo-box');
-                await animate(
-                    maintainerBox,
-                    {
-                        strokeWidth: [4, 6, 4],
-                    },
-                    { duration: 0.5, easing: 'ease-in-out' }
-                ).finished;
-
-                statusText.textContent = 'Step 5 complete: Changes pulled, tested, and merged locally';
+                statusText.textContent = 'Step 5 complete: Changes pulled, tested, and merged';
             },
 
             6: async () => {
                 statusText.textContent = 'Maintainer pushing merged changes to blessed repository...';
 
-                const maintainerNode = document.getElementById('maintainer-private');
-                const blessedNode = document.getElementById('blessed-repo');
-                const arrow = document.getElementById('arrow-6');
-                const label = document.getElementById('label-push-3');
-                const packet = document.getElementById('packet-6');
-
-                // Highlight nodes
-                maintainerNode.classList.add('highlight-maintainer');
+                highlightNode('integration-manager', '#e05a33');
                 await new Promise(r => setTimeout(r, 300));
-                blessedNode.classList.add('highlight-blessed');
+                highlightNode('blessed-repo', '#c9a227');
 
-                // Show and animate arrow
-                await animate(arrow, { opacity: 1 }, { duration: 0.3 }).finished;
+                activateArrow('arrow-manager-to-blessed', true);
+                await showLabel('label-push-3');
 
-                // Show label
-                await animate(label, { opacity: 1 }, { duration: 0.3 }).finished;
+                const packet = document.getElementById('packet-6');
+                const line = document.getElementById('arrow-manager-to-blessed');
+                await animatePacketAlongLine(packet, line, 1.2);
 
-                // Animate packet along path
-                const path = arrow;
-                const pathLength = path.getTotalLength();
-
-                packet.style.opacity = '1';
-
-                await animate(
-                    (progress) => {
-                        const point = path.getPointAtLength(progress * pathLength);
-                        packet.setAttribute('cx', point.x);
-                        packet.setAttribute('cy', point.y);
-                    },
-                    { duration: 1.5, easing: 'ease-in-out' }
-                ).finished;
-
-                packet.style.opacity = '0';
-
-                // Pulse blessed node to show completion
-                const blessedBox = blessedNode.querySelector('.repo-box');
-                await animate(
-                    blessedBox,
-                    {
-                        strokeWidth: [4, 8, 4],
-                    },
-                    { duration: 0.6, easing: 'ease-in-out' }
+                // Final success pulse
+                const blessed = document.getElementById('blessed-repo');
+                const box = blessed.querySelector('.repo-box');
+                await animate(box,
+                    { filter: ['drop-shadow(0 0 20px #c9a227)', 'drop-shadow(0 0 40px #3fb950)', 'drop-shadow(0 0 25px #c9a227)'] },
+                    { duration: 0.8, easing: 'ease-in-out' }
                 ).finished;
 
                 statusText.textContent = '✓ Workflow complete: Changes integrated into blessed repository';
