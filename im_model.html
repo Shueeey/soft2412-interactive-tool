@@ -485,12 +485,12 @@
 
                 <!-- Arrow: Blessed Repository → Dev 1 Public (Pull/Clone) -->
                 <line id="arrow-blessed-to-dev1-public" class="arrow-line arrow-pull"
-                      x1="210" y1="120" x2="340" y2="120"
+                      x1="210" y1="115" x2="340" y2="115"
                       marker-end="url(#arrowhead-gray)"/>
 
                 <!-- Arrow: Blessed Repository → Dev 2 Public (Pull/Clone) -->
-                <line id="arrow-blessed-to-dev2-public" class="arrow-line arrow-pull"
-                      x1="210" y1="120" x2="540" y2="120"
+                <path id="arrow-blessed-to-dev2-public" class="arrow-line arrow-pull"
+                      d="M 210 130 Q 375 50 540 115"
                       marker-end="url(#arrowhead-gray)"/>
 
                 <!-- Arrow: Dev 1 Public → Dev 1 Private (Pull/Clone) -->
@@ -707,26 +707,47 @@
         const steps = document.querySelectorAll('.step');
         const statusText = document.getElementById('status-text');
 
-        // Helper function to animate packet along a line
-        async function animatePacketAlongLine(packet, line, duration = 1.2) {
-            const x1 = parseFloat(line.getAttribute('x1'));
-            const y1 = parseFloat(line.getAttribute('y1'));
-            const x2 = parseFloat(line.getAttribute('x2'));
-            const y2 = parseFloat(line.getAttribute('y2'));
+        // Helper function to animate packet along a line or path
+        async function animatePacketAlongLine(packet, element, duration = 1.2) {
+            // Check if it's a path or a line
+            if (element.tagName.toLowerCase() === 'path') {
+                // For path elements, use getTotalLength and getPointAtLength
+                const pathLength = element.getTotalLength();
+                const startPoint = element.getPointAtLength(0);
 
-            packet.setAttribute('cx', x1);
-            packet.setAttribute('cy', y1);
-            packet.style.opacity = '1';
+                packet.setAttribute('cx', startPoint.x);
+                packet.setAttribute('cy', startPoint.y);
+                packet.style.opacity = '1';
 
-            await animate(
-                (progress) => {
-                    const x = x1 + (x2 - x1) * progress;
-                    const y = y1 + (y2 - y1) * progress;
-                    packet.setAttribute('cx', x);
-                    packet.setAttribute('cy', y);
-                },
-                { duration, easing: 'ease-in-out' }
-            ).finished;
+                await animate(
+                    (progress) => {
+                        const point = element.getPointAtLength(progress * pathLength);
+                        packet.setAttribute('cx', point.x);
+                        packet.setAttribute('cy', point.y);
+                    },
+                    { duration, easing: 'ease-in-out' }
+                ).finished;
+            } else {
+                // For line elements, use x1, y1, x2, y2
+                const x1 = parseFloat(element.getAttribute('x1'));
+                const y1 = parseFloat(element.getAttribute('y1'));
+                const x2 = parseFloat(element.getAttribute('x2'));
+                const y2 = parseFloat(element.getAttribute('y2'));
+
+                packet.setAttribute('cx', x1);
+                packet.setAttribute('cy', y1);
+                packet.style.opacity = '1';
+
+                await animate(
+                    (progress) => {
+                        const x = x1 + (x2 - x1) * progress;
+                        const y = y1 + (y2 - y1) * progress;
+                        packet.setAttribute('cx', x);
+                        packet.setAttribute('cy', y);
+                    },
+                    { duration, easing: 'ease-in-out' }
+                ).finished;
+            }
 
             packet.style.opacity = '0';
         }
