@@ -707,6 +707,8 @@
         const steps = document.querySelectorAll('.step');
         const statusText = document.getElementById('status-text');
         let activeStep = null;
+        let animationRunId = 0;
+
 
 
         // Helper function to animate packet along a line or path
@@ -811,193 +813,233 @@
 
         // Animation sequences for each step
         const animations = {
-            1: async () => {
+            1: async (runId) => {
+                if (runId !== animationRunId) return;
+
                 statusText.textContent = 'Maintainer pushing to blessed repository...';
 
                 highlightNode('integration-manager', '#e05a33');
                 await new Promise(r => setTimeout(r, 300));
-                highlightNode('blessed-repo', '#c9a227');
+                if (runId !== animationRunId) return;
 
+                highlightNode('blessed-repo', '#c9a227');
                 activateArrow('arrow-manager-to-blessed', true);
                 await showLabel('label-push-1');
+                if (runId !== animationRunId) return;
 
                 const packet = document.getElementById('packet-1');
                 const line = document.getElementById('arrow-manager-to-blessed');
                 await animatePacketAlongLine(packet, line);
+                if (runId !== animationRunId) return;
 
                 statusText.textContent = 'Step 1 complete: Code pushed to blessed repository';
             },
 
-            2: async () => {
+            2: async (runId) => {
+                if (runId !== animationRunId) return;
+
                 statusText.textContent = 'Contributors cloning the blessed repository...';
 
                 highlightNode('blessed-repo', '#c9a227');
                 await new Promise(r => setTimeout(r, 300));
+                if (runId !== animationRunId) return;
+
                 highlightNode('dev1-public', '#2a9d8f');
                 highlightNode('dev2-public', '#2a9d8f');
 
-                // Clone to public repos
                 activateArrow('arrow-blessed-to-dev1-public', false);
                 activateArrow('arrow-blessed-to-dev2-public', false);
                 await showLabel('label-clone-1');
                 await showLabel('label-clone-2');
+                if (runId !== animationRunId) return;
 
-                const packet2 = document.getElementById('packet-2');
-                const line1 = document.getElementById('arrow-blessed-to-dev1-public');
-                await animatePacketAlongLine(packet2, line1, 1);
+                const packet = document.getElementById('packet-2');
+                await animatePacketAlongLine(packet, document.getElementById('arrow-blessed-to-dev1-public'), 1);
+                if (runId !== animationRunId) return;
 
-                const packet2b = document.getElementById('packet-2');
-                const line2 = document.getElementById('arrow-blessed-to-dev2-public');
-                await animatePacketAlongLine(packet2b, line2, 1);
+                await animatePacketAlongLine(packet, document.getElementById('arrow-blessed-to-dev2-public'), 1);
+                if (runId !== animationRunId) return;
 
-                // Then to private repos
-                await new Promise(r => setTimeout(r, 300));
                 highlightNode('dev1-private', '#888888');
                 highlightNode('dev2-private', '#888888');
 
                 activateArrow('arrow-dev1-public-to-private', false);
                 activateArrow('arrow-dev2-public-to-private', false);
 
-                const packet3 = document.getElementById('packet-2');
-                const line3 = document.getElementById('arrow-dev1-public-to-private');
-                await animatePacketAlongLine(packet3, line3, 0.8);
+                await animatePacketAlongLine(packet, document.getElementById('arrow-dev1-public-to-private'), 0.8);
+                if (runId !== animationRunId) return;
 
-                const packet3b = document.getElementById('packet-2');
-                const line4 = document.getElementById('arrow-dev2-public-to-private');
-                await animatePacketAlongLine(packet3b, line4, 0.8);
+                await animatePacketAlongLine(packet, document.getElementById('arrow-dev2-public-to-private'), 0.8);
+                if (runId !== animationRunId) return;
 
                 statusText.textContent = 'Step 2 complete: Repository cloned to developer machines';
             },
 
-            3: async () => {
+            3: async (runId) => {
+                if (runId !== animationRunId) return;
+
                 statusText.textContent = 'Contributors pushing changes to their public forks...';
 
                 highlightNode('dev1-private', '#888888');
                 highlightNode('dev2-private', '#888888');
                 await new Promise(r => setTimeout(r, 300));
+                if (runId !== animationRunId) return;
+
                 highlightNode('dev1-public', '#2a9d8f');
                 highlightNode('dev2-public', '#2a9d8f');
 
                 activateArrow('arrow-dev1-private-to-public', true);
                 activateArrow('arrow-dev2-private-to-public', true);
                 await showLabel('label-push-2');
+                if (runId !== animationRunId) return;
 
                 const packet = document.getElementById('packet-3');
-                const line1 = document.getElementById('arrow-dev1-private-to-public');
-                await animatePacketAlongLine(packet, line1, 1);
+                await animatePacketAlongLine(packet, document.getElementById('arrow-dev1-private-to-public'), 1);
+                if (runId !== animationRunId) return;
 
-                const packetB = document.getElementById('packet-3');
-                const line2 = document.getElementById('arrow-dev2-private-to-public');
-                await animatePacketAlongLine(packetB, line2, 1);
+                await animatePacketAlongLine(packet, document.getElementById('arrow-dev2-private-to-public'), 1);
+                if (runId !== animationRunId) return;
 
                 statusText.textContent = 'Step 3 complete: Changes pushed to public forks';
             },
 
-            4: async () => {
+            4: async (runId) => {
+                if (runId !== animationRunId) return;
+
                 statusText.textContent = 'Contributors sending pull request to maintainer...';
 
                 highlightNode('dev1-public', '#2a9d8f');
                 highlightNode('dev2-public', '#2a9d8f');
                 await new Promise(r => setTimeout(r, 300));
+                if (runId !== animationRunId) return;
+
                 highlightNode('integration-manager', '#e05a33');
 
-                // Show the pull arrows to indicate notification
                 activateArrow('arrow-dev1-public-to-manager', false);
                 activateArrow('arrow-dev2-public-to-manager', false);
 
-                // Create email notification effect
-                const manager = document.getElementById('integration-manager');
-                const box = manager.querySelector('.repo-box');
+                const box = document
+                    .getElementById('integration-manager')
+                    .querySelector('.repo-box');
 
-                await animate(box,
-                    { filter: ['drop-shadow(0 0 20px #e05a33)', 'drop-shadow(0 0 40px #39c5cf)', 'drop-shadow(0 0 20px #e05a33)'] },
-                    { duration: 1, easing: 'ease-in-out' }
-                ).finished;
+                await animate(box, {
+                    filter: [
+                        'drop-shadow(0 0 20px #e05a33)',
+                        'drop-shadow(0 0 40px #39c5cf)',
+                        'drop-shadow(0 0 20px #e05a33)'
+                    ]
+                }, { duration: 1 }).finished;
+
+                if (runId !== animationRunId) return;
 
                 statusText.textContent = 'Step 4 complete: Pull request notification sent';
             },
 
-            5: async () => {
+            5: async (runId) => {
+                if (runId !== animationRunId) return;
+
                 statusText.textContent = 'Maintainer pulling and merging changes...';
 
                 highlightNode('dev1-public', '#2a9d8f');
                 highlightNode('dev2-public', '#2a9d8f');
                 await new Promise(r => setTimeout(r, 300));
+                if (runId !== animationRunId) return;
+
                 highlightNode('integration-manager', '#e05a33');
 
                 activateArrow('arrow-dev1-public-to-manager', false);
                 activateArrow('arrow-dev2-public-to-manager', false);
                 await showLabel('label-pull-1');
+                if (runId !== animationRunId) return;
 
                 const packet = document.getElementById('packet-5');
-                const line1 = document.getElementById('arrow-dev1-public-to-manager');
-                await animatePacketAlongLine(packet, line1, 1.2);
+                await animatePacketAlongLine(packet, document.getElementById('arrow-dev1-public-to-manager'), 1.2);
+                if (runId !== animationRunId) return;
 
-                const packetB = document.getElementById('packet-5');
-                const line2 = document.getElementById('arrow-dev2-public-to-manager');
-                await animatePacketAlongLine(packetB, line2, 1.2);
+                await animatePacketAlongLine(packet, document.getElementById('arrow-dev2-public-to-manager'), 1.2);
+                if (runId !== animationRunId) return;
 
-                // Pulse to show merge
-                const manager = document.getElementById('integration-manager');
-                const box = manager.querySelector('.repo-box');
-                await animate(box,
-                    { filter: ['drop-shadow(0 0 20px #e05a33)', 'drop-shadow(0 0 35px #3fb950)', 'drop-shadow(0 0 20px #e05a33)'] },
-                    { duration: 0.6, easing: 'ease-in-out' }
-                ).finished;
+                const box = document
+                    .getElementById('integration-manager')
+                    .querySelector('.repo-box');
+
+                await animate(box, {
+                    filter: [
+                        'drop-shadow(0 0 20px #e05a33)',
+                        'drop-shadow(0 0 35px #3fb950)',
+                        'drop-shadow(0 0 20px #e05a33)'
+                    ]
+                }, { duration: 0.6 }).finished;
+
+                if (runId !== animationRunId) return;
 
                 statusText.textContent = 'Step 5 complete: Changes pulled, tested, and merged';
             },
 
-            6: async () => {
+            6: async (runId) => {
+                if (runId !== animationRunId) return;
+
                 statusText.textContent = 'Maintainer pushing merged changes to blessed repository...';
 
                 highlightNode('integration-manager', '#e05a33');
                 await new Promise(r => setTimeout(r, 300));
+                if (runId !== animationRunId) return;
+
                 highlightNode('blessed-repo', '#c9a227');
 
                 activateArrow('arrow-manager-to-blessed', true);
                 await showLabel('label-push-3');
+                if (runId !== animationRunId) return;
 
                 const packet = document.getElementById('packet-6');
-                const line = document.getElementById('arrow-manager-to-blessed');
-                await animatePacketAlongLine(packet, line, 1.2);
+                await animatePacketAlongLine(packet, document.getElementById('arrow-manager-to-blessed'), 1.2);
+                if (runId !== animationRunId) return;
 
-                // Final success pulse
-                const blessed = document.getElementById('blessed-repo');
-                const box = blessed.querySelector('.repo-box');
-                await animate(box,
-                    { filter: ['drop-shadow(0 0 20px #c9a227)', 'drop-shadow(0 0 40px #3fb950)', 'drop-shadow(0 0 25px #c9a227)'] },
-                    { duration: 0.8, easing: 'ease-in-out' }
-                ).finished;
+                const box = document
+                    .getElementById('blessed-repo')
+                    .querySelector('.repo-box');
+
+                await animate(box, {
+                    filter: [
+                        'drop-shadow(0 0 20px #c9a227)',
+                        'drop-shadow(0 0 40px #3fb950)',
+                        'drop-shadow(0 0 25px #c9a227)'
+                    ]
+                }, { duration: 0.8 }).finished;
+
+                if (runId !== animationRunId) return;
 
                 statusText.textContent = '✓ Workflow complete: Changes integrated into blessed repository';
             }
         };
+
 
         // Handle step clicks
         steps.forEach(step => {
             step.addEventListener('click', async () => {
                 const stepNum = parseInt(step.dataset.step);
 
-                // CASE 1: clicking the already-active step → deselect
+                // CASE 1: deselect active step
                 if (activeStep === stepNum) {
+                    animationRunId++; // invalidate all running animations
+                    activeStep = null;
                     steps.forEach(s => s.classList.remove('active'));
                     resetDiagram();
-                    activeStep = null;
                     statusText.textContent = 'Ready — Click a step to begin';
                     return;
                 }
 
-                // CASE 2: clicking a new step
+                // CASE 2: new step
+                animationRunId++;              // invalidate previous run
+                const runId = animationRunId;  // capture this run
                 activeStep = stepNum;
 
                 steps.forEach(s => s.classList.remove('active'));
                 step.classList.add('active');
-
                 resetDiagram();
 
                 if (animations[stepNum]) {
-                    await animations[stepNum]();
+                    await animations[stepNum](runId);
                 }
             });
         });
