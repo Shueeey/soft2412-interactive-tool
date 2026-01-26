@@ -522,8 +522,6 @@
                       x1="620" y1="140" x2="390" y2="210"
                       marker-end="url(#arrowhead-gray)"/>
 
-
-
                 <!-- Arrow: Lieutenant 1 → Dev 1 (Pull/Clone) -->
                 <line id="arrow-lt1-to-dev1" class="arrow-line arrow-pull"
                       x1="200" y1="280" x2="140" y2="360"
@@ -532,6 +530,11 @@
                 <!-- Arrow: Lieutenant 2 → Dev 2 (Pull/Clone) -->
                 <line id="arrow-lt2-to-dev2" class="arrow-line arrow-pull"
                       x1="400" y1="280" x2="400" y2="360"
+                      marker-end="url(#arrowhead-gray)"/>
+
+                <!-- Arrow: Lieutenant 2 → Dev 3 (Pull/Clone) -->
+                <line id="arrow-lt2-to-dev3" class="arrow-line arrow-pull"
+                      x1="400" y1="280" x2="600" y2="360"
                       marker-end="url(#arrowhead-gray)"/>
 
                 <!-- Arrow: Dev 1 → Lieutenant 1 (Push/Pull request) -->
@@ -544,9 +547,9 @@
                       x1="430" y1="380" x2="430" y2="300"
                       marker-end="url(#arrowhead-gray)"/>
 
-                <!-- Arrow: Dev 3 → Blessed/Dictator (Pull request - shown going to dictator) -->
-                <line id="arrow-dev3-to-dictator" class="arrow-line arrow-pull"
-                      x1="630" y1="380" x2="200" y2="130"
+                <!-- Arrow: Dev 3 → Lieutenant 2 (Push/Pull request -->
+                <line id="arrow-dev3-to-lt2" class="arrow-line arrow-pull"
+                      x1="630" y1="380" x2="430" y2="300"
                       marker-end="url(#arrowhead-gray)"/>
 
                 <!-- Arrow: Lieutenant 1 → Dictator (Pull request) -->
@@ -1010,9 +1013,9 @@
 
                 // Also show dev3 direct contribution
                 highlightNode('dev3-public', '#888888');
-                activateArrow('arrow-dev3-to-dictator', false);
+                activateArrow('arrow-dev3-to-lt2', false);
 
-                const line3 = document.getElementById('arrow-dev3-to-dictator');
+                const line3 = document.getElementById('arrow-dev3-to-lt2');
                 await animatePacketAlongLine(packet, line3, 1.2);
 
                 // Merge pulse on dictator
