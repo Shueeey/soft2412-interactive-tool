@@ -915,12 +915,14 @@
 
                 highlightNode('dev1-public', '#888888');
                 highlightNode('dev2-public', '#888888');
+                highlightNode('dev3-public', '#888888');
                 await new Promise(r => setTimeout(r, 300));
                 highlightNode('lieutenant1', '#2a9d8f');
                 highlightNode('lieutenant2', '#2a9d8f');
 
                 activateArrow('arrow-dev1-to-lt1', false);
                 activateArrow('arrow-dev2-to-lt2', false);
+                activateArrow('arrow-dev3-to-lt2', false);
 
                 // Notification pulse on lieutenants
                 const lt1 = document.getElementById('lieutenant1').querySelector('.repo-box');
