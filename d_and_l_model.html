@@ -524,32 +524,32 @@
 
                 <!-- Arrow: Lieutenant 1 → Dev 1 (Pull/Clone) -->
                 <line id="arrow-lt1-to-dev1" class="arrow-line arrow-pull"
-                      x1="200" y1="280" x2="140" y2="380"
+                      x1="200" y1="280" x2="140" y2="370"
                       marker-end="url(#arrowhead-gray)"/>
 
                 <!-- Arrow: Lieutenant 2 → Dev 2 (Pull/Clone) -->
                 <line id="arrow-lt2-to-dev2" class="arrow-line arrow-pull"
-                      x1="390" y1="280" x2="390" y2="380"
+                      x1="390" y1="280" x2="390" y2="370"
                       marker-end="url(#arrowhead-gray)"/>
 
                 <!-- Arrow: Lieutenant 2 → Dev 3 (Pull/Clone) -->
                 <line id="arrow-lt2-to-dev3" class="arrow-line arrow-pull"
-                      x1="470" y1="225" x2="680" y2="380"
+                      x1="470" y1="225" x2="680" y2="370"
                       marker-end="url(#arrowhead-gray)"/>
 
                 <!-- Arrow: Dev 1 → Lieutenant 1 (Push/Pull request) -->
                 <line id="arrow-dev1-to-lt1" class="arrow-line arrow-pull"
-                      x1="170" y1="380" x2="220" y2="300"
+                      x1="170" y1="380" x2="220" y2="290"
                       marker-end="url(#arrowhead-gray)"/>
 
                 <!-- Arrow: Dev 2 → Lieutenant 2 (Push/Pull request) -->
                 <line id="arrow-dev2-to-lt2" class="arrow-line arrow-pull"
-                      x1="420" y1="380" x2="420" y2="300"
+                      x1="420" y1="380" x2="420" y2="290"
                       marker-end="url(#arrowhead-gray)"/>
 
                 <!-- Arrow: Dev 3 → Lieutenant 2 (Push/Pull request -->
                 <line id="arrow-dev3-to-lt2" class="arrow-line arrow-pull"
-                      x1="630" y1="380" x2="470" y2="255"
+                      x1="630" y1="380" x2="480" y2="265"
                       marker-end="url(#arrowhead-gray)"/>
 
                 <!-- Arrow: Lieutenant 1 → Dictator (Pull request) -->
@@ -856,7 +856,7 @@
                 await new Promise(r => setTimeout(r, 300));
                 highlightNode('lieutenant1', '#2a9d8f');
                 highlightNode('lieutenant2', '#2a9d8f');
-                highlightNode('dev3-public', '#888888');
+
 
                 activateArrow('arrow-blessed-to-lt1', false);
                 activateArrow('arrow-blessed-to-lt2', false);
@@ -874,9 +874,11 @@
                 await new Promise(r => setTimeout(r, 200));
                 highlightNode('dev1-public', '#888888');
                 highlightNode('dev2-public', '#888888');
+                highlightNode('dev3-public', '#888888');
 
                 activateArrow('arrow-lt1-to-dev1', false);
                 activateArrow('arrow-lt2-to-dev2', false);
+                activateArrow('arrow-lt2-to-dev3', false);
 
                 const line4 = document.getElementById('arrow-lt1-to-dev1');
                 await animatePacketAlongLine(packet, line4, 0.6);
