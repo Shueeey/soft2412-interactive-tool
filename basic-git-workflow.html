@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Git Workflow</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/motion@12.0.0/dist/motion.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border-color: #30363d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-purple: #a371f7;
+            --accent-orange: #d29922;
+            --accent-red: #f85149;
+            --accent-cyan: #39c5cf;
+            --working-color: #e05a33;
+            --staging-color: #2a9d8f;
+            --repo-color: #8b949e;
+            --arrow-color: #7a7a7a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Noise texture overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Left Panel - Diagram */
+        .diagram-panel {
+            width: 62.5%;
+            padding: 2rem;
+            position: relative;
+            background: 
+                radial-gradient(ellipse at 20% 80%, rgba(224, 90, 51, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(42, 157, 143, 0.08) 0%, transparent 50%),
+                var(--bg-primary);
+        }
+
+        .diagram-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .diagram-header h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .diagram-header span {
+            color: var(--accent-orange);
+        }
+
+        .diagram-header .highlight {
+            color: var(--staging-color);
+        }
+
+        .diagram-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* SVG Diagram Container */
+        .diagram-container {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 8rem);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .diagram-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Repository Nodes */
+        .repo-node {
+            transition: transform 0.3s ease;
+        }
+
+        .repo-box {
+            rx: 6;
+            transition: all 0.3s ease;
+        }
+
+        .repo-label {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            fill: white;
+        }
+
+        .repo-label-dark {
+            fill: #1a1a1a;
+        }
+
+        .section-label {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            fill: var(--working-color);
+        }
+
+        /* Arrow Styles */
+        .arrow-shape {
+            fill: var(--arrow-color);
+            opacity: 0.4;
+            transition: all 0.3s ease;
+        }
+
+        .arrow-text {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-style: italic;
+            fill: white;
+            pointer-events: none;
+        }
+
+        .arrow-number {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            fill: var(--working-color);
+        }
+
+        .arrow-active {
+            opacity: 1 !important;
+            fill: #8a8a8a !important;
+        }
+
+        /* Vertical lines */
+        .vertical-line {
+            stroke: var(--border-color);
+            stroke-width: 2;
+            opacity: 0.5;
+        }
+
+        /* Data packet animation */
+        .data-packet {
+            opacity: 0;
+        }
+
+        /* Right Panel - Instructions */
+        .instructions-panel {
+            width: 37.5%;
+            padding: 2rem;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .instructions-header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .instructions-header h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            margin-bottom: 0.5rem;
+        }
+
+        .instructions-header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* Workflow Steps */
+        .workflow-steps {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .step {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .step:hover {
+            background: rgba(88, 166, 255, 0.05);
+            border-color: var(--accent-blue);
+            transform: translateX(4px);
+        }
+
+        .step:hover::before {
+            background: var(--accent-blue);
+        }
+
+        .step.active {
+            background: rgba(88, 166, 255, 0.1);
+            border-color: var(--accent-blue);
+        }
+
+        .step.active::before {
+            background: var(--accent-blue);
+            width: 4px;
+        }
+
+        .step-number {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+
+        .step:hover .step-number,
+        .step.active .step-number {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: var(--bg-primary);
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.35rem;
+        }
+
+        .step-description {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .step-command {
+            display: inline-block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--accent-green);
+            margin-top: 0.5rem;
+        }
+
+        .step-areas {
+            display: flex;
+            gap: 0.4rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .area-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .area-working {
+            background: rgba(224, 90, 51, 0.2);
+            color: var(--working-color);
+        }
+
+        .area-staging {
+            background: rgba(42, 157, 143, 0.2);
+            color: var(--staging-color);
+        }
+
+        .area-repo {
+            background: rgba(139, 148, 158, 0.2);
+            color: var(--repo-color);
+        }
+
+        /* Info Section */
+        .info-section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .info-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-purple);
+            margin-bottom: 0.75rem;
+        }
+
+        .info-list {
+            list-style: none;
+        }
+
+        .info-list li {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            padding: 0.4rem 0;
+            padding-left: 1.25rem;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        .info-list li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent-green);
+            font-weight: bold;
+        }
+
+        /* Legend */
+        .legend {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .legend-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .legend-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .legend-working {
+            background: var(--working-color);
+        }
+
+        .legend-staging {
+            background: var(--staging-color);
+        }
+
+        .legend-repo {
+            background: var(--repo-color);
+        }
+
+        /* Status indicator */
+        .status-bar {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .status-bar strong {
+            color: var(--accent-cyan);
+        }
+
+        /* Scrollbar styling */
+        .workflow-steps::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .workflow-steps::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+            border-radius: 3px;
+        }
+
+        .workflow-steps::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .workflow-steps::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* Navigation link */
+        .nav-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Left Panel - Diagram -->
+        <div class="diagram-panel">
+            <div class="diagram-header">
+                <h1>Basic <span>Git</span> <span class="highlight">Workflow</span></h1>
+                <p class="diagram-subtitle">Click on workflow steps to see the animation • The three states of Git</p>
+            </div>
+            <div class="diagram-container">
+                <svg class="diagram-svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet">
+                    <!-- Background grid -->
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#21262d" stroke-width="1"/>
+                    </pattern>
+                    <rect width="100%" height="100%" fill="url(#grid)" opacity="0.5"/>
+
+                    <!-- Section Labels (Top) -->
+                    <text class="section-label" x="130" y="50" text-anchor="middle" fill="#e05a33">Modified files</text>
+                    <text class="section-label" x="400" y="50" text-anchor="middle" fill="#2a9d8f">Staged files</text>
+                    <text class="section-label" x="670" y="50" text-anchor="middle" fill="#8b949e">Committed files</text>
+
+                    <!-- ==================== REPOSITORY BOXES ==================== -->
+                    
+                    <!-- Working Directory -->
+                    <g id="working-directory" class="repo-node">
+                        <rect class="repo-box" x="50" y="70" width="160" height="70" 
+                              fill="#e05a33" stroke="none"/>
+                        <text class="repo-label" x="130" y="100" text-anchor="middle">Working</text>
+                        <text class="repo-label" x="130" y="120" text-anchor="middle">Directory</text>
+                    </g>
+
+                    <!-- Staging Area -->
+                    <g id="staging-area" class="repo-node">
+                        <rect class="repo-box" x="320" y="70" width="160" height="70" 
+                              fill="#2a9d8f" stroke="none"/>
+                        <text class="repo-label" x="400" y="100" text-anchor="middle">Staging</text>
+                        <text class="repo-label" x="400" y="120" text-anchor="middle">Area</text>
+                    </g>
+
+                    <!-- .git Directory (Repository) -->
+                    <g id="git-repository" class="repo-node">
+                        <rect class="repo-box" x="590" y="70" width="160" height="70" 
+                              fill="#d4d4d4" stroke="none"/>
+                        <text class="repo-label repo-label-dark" x="670" y="100" text-anchor="middle">.git directory</text>
+                        <text class="repo-label repo-label-dark" x="670" y="120" text-anchor="middle">(Repository)</text>
+                    </g>
+
+                    <!-- Vertical Lines -->
+                    <line class="vertical-line" x1="130" y1="140" x2="130" y2="420"/>
+                    <line class="vertical-line" x1="400" y1="140" x2="400" y2="420"/>
+                    <line class="vertical-line" x1="670" y1="140" x2="670" y2="420"/>
+
+                    <!-- ==================== ARROWS ==================== -->
+                    
+                    <!-- Arrow 1: Checkout the project (Repository → Working Directory) -->
+                    <g id="arrow-checkout">
+                        <polygon id="arrow-1-shape" class="arrow-shape" 
+                                 points="620,190 620,175 180,175 180,160 130,190 180,220 180,205 620,205"/>
+                        <text class="arrow-text" x="400" y="195" text-anchor="middle">Checkout the project</text>
+                    </g>
+                    <text id="arrow-1-number" class="arrow-number" x="640" y="175" text-anchor="middle">1</text>
+
+                    <!-- Arrow 2: Stage Fixes (Working Directory → Staging Area) -->
+                    <g id="arrow-stage">
+                        <polygon id="arrow-2-shape" class="arrow-shape" 
+                                 points="180,290 180,275 350,275 350,260 400,290 350,320 350,305 180,305"/>
+                        <text class="arrow-text" x="280" y="295" text-anchor="middle">Stage Fixes</text>
+                    </g>
+                    <text id="arrow-2-number" class="arrow-number" x="160" y="275" text-anchor="middle">2</text>
+
+                    <!-- Arrow 3: Commit (Staging Area → Repository) -->
+                    <g id="arrow-commit">
+                        <polygon id="arrow-3-shape" class="arrow-shape" 
+                                 points="450,390 450,375 620,375 620,360 670,390 620,420 620,405 450,405"/>
+                        <text class="arrow-text" x="550" y="395" text-anchor="middle">Commit</text>
+                    </g>
+                    <text id="arrow-3-number" class="arrow-number" x="430" y="375" text-anchor="middle">3</text>
+
+                    <!-- ==================== DATA PACKETS ==================== -->
+                    <circle id="packet-1" class="data-packet" r="10" fill="#58a6ff"/>
+                    <circle id="packet-2" class="data-packet" r="10" fill="#3fb950"/>
+                    <circle id="packet-3" class="data-packet" r="10" fill="#a371f7"/>
+
+                </svg>
+            </div>
+        </div>
+
+        <!-- Right Panel - Instructions -->
+        <div class="instructions-panel">
+            <a href="main.html" class="nav-link">
+                ← Back to All Workflows
+            </a>
+            
+            <div class="instructions-header">
+                <h2>// WORKFLOW STEPS</h2>
+                <p>Click each step to visualize how files move through the three states in Git</p>
+            </div>
+
+            <div class="workflow-steps">
+                <div class="step" data-step="1">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <div class="step-title">Checkout the Project</div>
+                        <div class="step-description">Clone or checkout files from the repository to your working directory. This pulls a specific version of the project for you to work on.</div>
+                        <code class="step-command">git checkout / git clone</code>
+                        <div class="step-areas">
+                            <span class="area-tag area-repo">.GIT REPOSITORY</span>
+                            <span class="area-tag area-working">WORKING DIR</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step" data-step="2">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <div class="step-title">Stage Fixes</div>
+                        <div class="step-description">After modifying files in your working directory, stage them to mark them for inclusion in the next commit. This adds a snapshot to the staging area.</div>
+                        <code class="step-command">git add &lt;files&gt;</code>
+                        <div class="step-areas">
+                            <span class="area-tag area-working">WORKING DIR</span>
+                            <span class="area-tag area-staging">STAGING AREA</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step" data-step="3">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <div class="step-title">Commit</div>
+                        <div class="step-description">Take the files from the staging area and store a permanent snapshot in the .git directory (repository). This creates a new commit in the project history.</div>
+                        <code class="step-command">git commit -m "message"</code>
+                        <div class="step-areas">
+                            <span class="area-tag area-staging">STAGING AREA</span>
+                            <span class="area-tag area-repo">.GIT REPOSITORY</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <div class="info-title">// THE THREE STATES</div>
+                <ul class="info-list">
+                    <li><strong>Modified:</strong> Changed files in working directory, not yet staged</li>
+                    <li><strong>Staged:</strong> Marked modified files for next commit snapshot</li>
+                    <li><strong>Committed:</strong> Data safely stored in local .git database</li>
+                </ul>
+            </div>
+
+            <div class="legend">
+                <div class="legend-title">Legend</div>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <div class="legend-box legend-working"></div>
+                        <span>Working Directory (Modified)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box legend-staging"></div>
+                        <span>Staging Area (Staged)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box legend-repo"></div>
+                        <span>.git Repository (Committed)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-bar">
+                <strong>STATUS:</strong> <span id="status-text">Ready — Click a step to begin</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const { animate } = Motion;
+            
+            const steps = document.querySelectorAll('.step');
+            const statusText = document.getElementById('status-text');
+
+            // Helper to highlight a node
+            function highlightNode(nodeId, color) {
+                const node = document.getElementById(nodeId);
+                const box = node.querySelector('.repo-box');
+                box.style.filter = `drop-shadow(0 0 20px ${color})`;
+                box.style.stroke = color;
+                box.style.strokeWidth = '3';
+            }
+
+            // Helper to activate an arrow
+            function activateArrow(arrowId) {
+                const arrow = document.getElementById(arrowId);
+                arrow.classList.add('arrow-active');
+            }
+
+            // Reset all visual states
+            function resetDiagram() {
+                // Reset all arrows
+                document.querySelectorAll('.arrow-shape').forEach(arrow => {
+                    arrow.classList.remove('arrow-active');
+                });
+
+                // Reset all packets
+                document.querySelectorAll('.data-packet').forEach(packet => {
+                    packet.style.opacity = '0';
+                });
+
+                // Reset node highlights
+                document.querySelectorAll('.repo-box').forEach(box => {
+                    box.style.filter = 'none';
+                    box.style.stroke = 'none';
+                    box.style.strokeWidth = '0';
+                });
+            }
+
+            // Animate packet along a custom path
+            async function animatePacket(packet, startX, startY, endX, endY, duration = 1.2) {
+                packet.setAttribute('cx', startX);
+                packet.setAttribute('cy', startY);
+                packet.style.opacity = '1';
+                
+                await animate(
+                    (progress) => {
+                        const x = startX + (endX - startX) * progress;
+                        const y = startY + (endY - startY) * progress;
+                        packet.setAttribute('cx', x);
+                        packet.setAttribute('cy', y);
+                    },
+                    { duration, easing: 'ease-in-out' }
+                ).finished;
+                
+                packet.style.opacity = '0';
+            }
+
+            // Animation sequences for each step
+            const animations = {
+                1: async () => {
+                    statusText.textContent = 'Checking out project from repository...';
+                    
+                    highlightNode('git-repository', '#8b949e');
+                    await new Promise(r => setTimeout(r, 300));
+                    
+                    activateArrow('arrow-1-shape');
+                    
+                    highlightNode('working-directory', '#e05a33');
+                    
+                    // Animate packet from repo to working directory
+                    const packet = document.getElementById('packet-1');
+                    await animatePacket(packet, 670, 190, 130, 190, 1.5);
+                    
+                    // Pulse working directory
+                    const workingBox = document.getElementById('working-directory').querySelector('.repo-box');
+                    await animate(workingBox, 
+                        { filter: ['drop-shadow(0 0 20px #e05a33)', 'drop-shadow(0 0 35px #58a6ff)', 'drop-shadow(0 0 20px #e05a33)'] },
+                        { duration: 0.5, easing: 'ease-in-out' }
+                    ).finished;
+                    
+                    statusText.textContent = 'Step 1 complete: Project checked out to working directory';
+                },
+
+                2: async () => {
+                    statusText.textContent = 'Staging modified files...';
+                    
+                    highlightNode('working-directory', '#e05a33');
+                    await new Promise(r => setTimeout(r, 300));
+                    
+                    activateArrow('arrow-2-shape');
+                    
+                    highlightNode('staging-area', '#2a9d8f');
+                    
+                    // Animate packet from working directory to staging area
+                    const packet = document.getElementById('packet-2');
+                    await animatePacket(packet, 130, 290, 400, 290, 1.2);
+                    
+                    // Pulse staging area
+                    const stagingBox = document.getElementById('staging-area').querySelector('.repo-box');
+                    await animate(stagingBox, 
+                        { filter: ['drop-shadow(0 0 20px #2a9d8f)', 'drop-shadow(0 0 35px #3fb950)', 'drop-shadow(0 0 20px #2a9d8f)'] },
+                        { duration: 0.5, easing: 'ease-in-out' }
+                    ).finished;
+                    
+                    statusText.textContent = 'Step 2 complete: Files staged for commit';
+                },
+
+                3: async () => {
+                    statusText.textContent = 'Committing staged files to repository...';
+                    
+                    highlightNode('staging-area', '#2a9d8f');
+                    await new Promise(r => setTimeout(r, 300));
+                    
+                    activateArrow('arrow-3-shape');
+                    
+                    highlightNode('git-repository', '#8b949e');
+                    
+                    // Animate packet from staging area to repository
+                    const packet = document.getElementById('packet-3');
+                    await animatePacket(packet, 400, 390, 670, 390, 1.2);
+                    
+                    // Pulse repository
+                    const repoBox = document.getElementById('git-repository').querySelector('.repo-box');
+                    await animate(repoBox, 
+                        { filter: ['drop-shadow(0 0 20px #8b949e)', 'drop-shadow(0 0 35px #a371f7)', 'drop-shadow(0 0 20px #8b949e)'] },
+                        { duration: 0.5, easing: 'ease-in-out' }
+                    ).finished;
+                    
+                    statusText.textContent = '✓ Step 3 complete: Changes committed to repository';
+                }
+            };
+
+            // Handle step clicks
+            steps.forEach(step => {
+                step.addEventListener('click', async () => {
+                    const stepNum = parseInt(step.dataset.step);
+                    
+                    steps.forEach(s => s.classList.remove('active'));
+                    step.classList.add('active');
+                    
+                    resetDiagram();
+                    
+                    if (animations[stepNum]) {
+                        await animations[stepNum]();
+                    }
+                });
+            });
+
+            statusText.textContent = 'Ready — Click a step to begin';
+        });
+    </script>
+</body>
+</html>
