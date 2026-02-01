@@ -747,12 +747,12 @@
                     await animate(testingBranch, { opacity: 1 }, { duration: 0.5 }).finished;
                     await animate(testingArrow, { opacity: 0.6 }, { duration: 0.3 }).finished;
 
-                    if (currentStepId === stepId) {
-                        highlightElement('branch-testing', '#e05a33');
-                        activateArrow('arrow-testing-to-f30ab');
-                        await animatePacket('packet-1', 490, 200, 490, 290, stepId);
-                        statusText.textContent = 'Step 1 complete: Both branches point to f30ab';
-                    }
+
+                    highlightElement('branch-testing', '#e05a33');
+                    activateArrow('arrow-testing-to-f30ab');
+                    await animatePacket('packet-1', 490, 200, 490, 290, stepId);
+                    statusText.textContent = 'Step 1 complete: Both branches point to f30ab';
+
                 },
 
                 2: async (stepId) => {
