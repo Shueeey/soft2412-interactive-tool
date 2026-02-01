@@ -873,18 +873,16 @@
                 const line2 = document.getElementById('arrow-blessed-to-lt2');
                 await animatePacketAlongLine(packet, line2, 0.8);
 
+                const line4 = document.getElementById('arrow-blessed-to-dev1');
+                await animatePacketAlongLine(packet, line4, 0.8);
+
+                const line5 = document.getElementById('arrow-blessed-to-dev2');
+                await animatePacketAlongLine(packet, line5, 0.8);
+
                 await new Promise(r => setTimeout(r, 200));
                 highlightNode('dev1-public', '#888888');
                 highlightNode('dev2-public', '#888888');
                 highlightNode('dev3-public', '#888888');
-
-
-
-                const line4 = document.getElementById('arrow-blessed-to-dev1');
-                await animatePacketAlongLine(packet, line4, 0.6);
-
-                const line5 = document.getElementById('arrow-blessed-to-dev2');
-                await animatePacketAlongLine(packet, line5, 0.6);
 
                 statusText.textContent = 'Step 2 complete: Repository cloned, developers create topic branches';
             },
