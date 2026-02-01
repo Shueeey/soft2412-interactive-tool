@@ -865,6 +865,9 @@
 
                 activateArrow('arrow-blessed-to-lt1', false);
                 activateArrow('arrow-blessed-to-lt2', false);
+                activateArrow('arrow-blessed-to-dev1', false);
+                activateArrow('arrow-blessed-to-dev2', false);
+                activateArrow('arrow-blessed-to-dev3', false);
 
                 const packet = document.getElementById('packet-2');
                 const line1 = document.getElementById('arrow-blessed-to-lt1');
@@ -873,10 +876,13 @@
                 const line2 = document.getElementById('arrow-blessed-to-lt2');
                 await animatePacketAlongLine(packet, line2, 0.8);
 
-                const line4 = document.getElementById('arrow-blessed-to-dev1');
+                const line3 = document.getElementById('arrow-blessed-to-dev1');
+                await animatePacketAlongLine(packet, line3, 0.8);
+
+                const line4 = document.getElementById('arrow-blessed-to-dev2');
                 await animatePacketAlongLine(packet, line4, 0.8);
 
-                const line5 = document.getElementById('arrow-blessed-to-dev2');
+                const line5 = document.getElementById('arrow-blessed-to-dev3');
                 await animatePacketAlongLine(packet, line5, 0.8);
 
                 await new Promise(r => setTimeout(r, 200));
