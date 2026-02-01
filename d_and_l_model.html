@@ -924,10 +924,6 @@
                 highlightNode('lieutenant1', '#2a9d8f');
                 highlightNode('lieutenant2', '#2a9d8f');
 
-                activateArrow('arrow-dev1-to-lt1', false);
-                activateArrow('arrow-dev2-to-lt2', false);
-                activateArrow('arrow-dev3-to-lt2', false);
-
                 // Notification pulse on lieutenants
                 const lt1 = document.getElementById('lieutenant1').querySelector('.repo-box');
                 const lt2 = document.getElementById('lieutenant2').querySelector('.repo-box');
@@ -952,7 +948,9 @@
                 highlightNode('lieutenant1', '#2a9d8f');
                 highlightNode('lieutenant2', '#2a9d8f');
 
-
+                activateArrow('arrow-dev1-to-lt1', false);
+                activateArrow('arrow-dev2-to-lt2', false);
+                activateArrow('arrow-dev3-to-lt2', false);
 
                 const packet = document.getElementById('packet-5');
                 const line1 = document.getElementById('arrow-dev1-to-lt1');
@@ -960,6 +958,9 @@
 
                 const line2 = document.getElementById('arrow-dev2-to-lt2');
                 await animatePacketAlongLine(packet, line2, 1);
+
+                const line3 = document.getElementById('arrow-dev3-to-lt2');
+                await animatePacketAlongLine(packet, line3, 1);
 
                 // Merge pulse on lieutenants
                 const lt1 = document.getElementById('lieutenant1').querySelector('.repo-box');
