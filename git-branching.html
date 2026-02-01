@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Git Distributed Workflows</title>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Git Branching & HEAD</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/motion@12.0.0/dist/motion.js"></script>
     <style>
         :root {
             --bg-primary: #0d1117;
@@ -20,9 +21,9 @@
             --accent-orange: #d29922;
             --accent-red: #f85149;
             --accent-cyan: #39c5cf;
-            --blessed-color: #c9a227;
-            --manager-color: #e05a33;
-            --lieutenant-color: #2a9d8f;
+            --branch-color: #e05a33;
+            --commit-color: #d4d4d4;
+            --head-color: #c9a227;
         }
 
         * {
@@ -39,7 +40,6 @@
             overflow-x: hidden;
         }
 
-        /* Noise texture overlay */
         body::before {
             content: '';
             position: fixed;
@@ -53,666 +53,760 @@
             z-index: 1000;
         }
 
-        /* Background gradients */
-        .bg-gradient {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background:
-                    radial-gradient(ellipse at 10% 20%, rgba(88, 166, 255, 0.08) 0%, transparent 50%),
-                    radial-gradient(ellipse at 90% 80%, rgba(163, 113, 247, 0.08) 0%, transparent 50%),
-                    radial-gradient(ellipse at 50% 50%, rgba(42, 157, 143, 0.05) 0%, transparent 60%);
-            pointer-events: none;
-            z-index: -1;
-        }
-
-        /* Main container */
         .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 3rem 2rem;
+            display: flex;
+            min-height: 100vh;
         }
 
-        /* Header */
-        .header {
-            text-align: center;
-            margin-bottom: 4rem;
+        .diagram-panel {
+            width: 62.5%;
+            padding: 2rem;
             position: relative;
+            background:
+                radial-gradient(ellipse at 20% 80%, rgba(224, 90, 51, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(201, 162, 39, 0.08) 0%, transparent 50%),
+                var(--bg-primary);
         }
 
-        .header::after {
-            content: '';
-            position: absolute;
-            bottom: -2rem;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100px;
-            height: 3px;
-            background: linear-gradient(90deg, var(--accent-purple), var(--accent-cyan));
-            border-radius: 2px;
-        }
-
-        .logo {
-            display: inline-flex;
-            align-items: center;
-            gap: 1rem;
+        .diagram-header {
             margin-bottom: 1.5rem;
         }
 
-        .logo-icon {
-            width: 60px;
-            height: 60px;
-            background: var(--bg-tertiary);
-            border: 2px solid var(--border-color);
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.8rem;
-        }
-
-        .logo-text {
+        .diagram-header h1 {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 3px;
-        }
-
-        .header h1 {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 3rem;
+            font-size: 1.5rem;
             font-weight: 700;
             color: var(--text-primary);
-            letter-spacing: -1px;
-            margin-bottom: 1rem;
+            letter-spacing: -0.5px;
         }
 
-        .header h1 span {
-            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        .diagram-header span {
+            color: var(--accent-orange);
         }
 
-        .header-description {
-            font-size: 1.1rem;
+        .diagram-header .highlight {
+            color: var(--head-color);
+        }
+
+        .diagram-subtitle {
+            font-size: 0.85rem;
             color: var(--text-secondary);
-            max-width: 700px;
-            margin: 0 auto;
-            line-height: 1.7;
+            margin-top: 0.25rem;
         }
 
-        /* Section Title */
-        .section {
-            margin-bottom: 4rem;
-        }
-
-        .section-header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .section-icon {
-            width: 40px;
-            height: 40px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-        }
-
-        .section-title {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .section-title span {
-            color: var(--accent-cyan);
-        }
-
-        /* Workflow Cards Grid */
-        .workflows-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 2rem;
-        }
-
-        /* Workflow Card */
-        .workflow-card {
+        .diagram-container {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 8rem);
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
-            overflow: hidden;
-            transition: all 0.4s ease;
-            position: relative;
-        }
-
-        .workflow-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--card-accent, var(--accent-blue)), transparent);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .workflow-card:hover {
-            border-color: var(--card-accent, var(--accent-blue));
-            transform: translateY(-4px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-        }
-
-        .workflow-card:hover::before {
-            opacity: 1;
-        }
-
-        .workflow-card.integration-manager {
-            --card-accent: var(--lieutenant-color);
-        }
-
-        .workflow-card.dictator-lieutenants {
-            --card-accent: var(--manager-color);
-        }
-
-        /* Card Header with mini diagram */
-        .card-diagram {
-            height: 180px;
-            background: var(--bg-primary);
-            border-bottom: 1px solid var(--border-color);
-            padding: 1.5rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
+            border-radius: 12px;
             overflow: hidden;
         }
 
-        .card-diagram svg {
+        .diagram-svg {
             width: 100%;
             height: 100%;
-            opacity: 0.9;
         }
 
-        .card-diagram::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 40px;
-            background: linear-gradient(to top, var(--bg-secondary), transparent);
-        }
-
-        /* Card Content */
-        .card-content {
-            padding: 1.5rem;
-        }
-
-        .card-badge {
-            display: inline-block;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.65rem;
-            font-weight: 600;
-            padding: 0.3rem 0.6rem;
-            background: rgba(88, 166, 255, 0.1);
-            color: var(--accent-blue);
-            border-radius: 4px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 0.75rem;
-        }
-
-        .card-title {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 0.75rem;
-        }
-
-        .card-description {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            line-height: 1.6;
-            margin-bottom: 1.25rem;
-        }
-
-        /* Card Tags */
-        .card-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .tag {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.7rem;
-            padding: 0.25rem 0.5rem;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            color: var(--text-muted);
-        }
-
-        /* Card Link */
-        .card-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--card-accent, var(--accent-blue));
-            text-decoration: none;
-            padding: 0.75rem 1.25rem;
-            background: rgba(88, 166, 255, 0.1);
-            border: 1px solid transparent;
-            border-radius: 8px;
+        .commit-box {
+            fill: var(--commit-color);
+            rx: 6;
             transition: all 0.3s ease;
         }
 
-        .workflow-card.integration-manager .card-link {
-            background: rgba(42, 157, 143, 0.1);
+        .branch-box {
+            fill: var(--branch-color);
+            rx: 6;
+            transition: all 0.3s ease;
         }
 
-        .workflow-card.dictator-lieutenants .card-link {
-            background: rgba(224, 90, 51, 0.1);
+        .head-box {
+            fill: var(--head-color);
+            rx: 6;
+            transition: all 0.3s ease;
         }
 
-        .workflow-card.basic-git {
-            --card-accent: #58a6ff;
+        .commit-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
+            font-weight: 600;
+            fill: #1a1a1a;
         }
 
-        .workflow-card.basic-git .card-link {
-            background: rgba(88, 166, 255, 0.1);
+        .branch-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            fill: white;
         }
 
-        .workflow-card.git-branching {
-            --card-accent: #c9a227;
+        .arrow-line {
+            stroke: #6e7681;
+            stroke-width: 2;
+            fill: none;
+            opacity: 0.6;
+            transition: all 0.3s ease;
         }
 
-        .workflow-card.git-branching .card-link {
-            background: rgba(201, 162, 39, 0.1);
+        .arrow-active {
+            opacity: 1 !important;
+            stroke: var(--accent-green) !important;
+            stroke-width: 3 !important;
         }
 
-        .card-link:hover {
-            background: var(--card-accent, var(--accent-blue));
-            color: var(--bg-primary);
-            border-color: var(--card-accent, var(--accent-blue));
+        .node-highlight {
+            filter: drop-shadow(0 0 15px currentColor);
         }
 
-        .card-link svg {
-            width: 16px;
-            height: 16px;
-            transition: transform 0.3s ease;
+        .data-packet {
+            opacity: 0;
         }
 
-        .card-link:hover svg {
+        /* Diagram label */
+        .diagram-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            fill: var(--text-muted);
+            text-anchor: middle;
+        }
+
+        /* Right Panel */
+        .instructions-panel {
+            width: 37.5%;
+            padding: 2rem;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .instructions-header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .instructions-header h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            margin-bottom: 0.5rem;
+        }
+
+        .instructions-header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .workflow-steps {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .step {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .step:hover {
+            background: rgba(88, 166, 255, 0.05);
+            border-color: var(--accent-blue);
             transform: translateX(4px);
         }
 
-        /* Coming Soon Card */
-        .workflow-card.coming-soon {
-            opacity: 0.6;
-            pointer-events: none;
+        .step:hover::before {
+            background: var(--accent-blue);
         }
 
-        .workflow-card.coming-soon .card-diagram {
-            filter: grayscale(1);
+        .step.active {
+            background: rgba(88, 166, 255, 0.1);
+            border-color: var(--accent-blue);
         }
 
-        .coming-soon-badge {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
+        .step.active::before {
+            background: var(--accent-blue);
+            width: 4px;
+        }
+
+        .step-number {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.65rem;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+
+        .step:hover .step-number,
+        .step.active .step-number {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: var(--bg-primary);
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
             font-weight: 600;
-            padding: 0.3rem 0.6rem;
-            background: var(--bg-tertiary);
-            color: var(--text-muted);
+            color: var(--text-primary);
+            margin-bottom: 0.35rem;
+        }
+
+        .step-description {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .step-command {
+            display: inline-block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
             border-radius: 4px;
+            color: var(--accent-green);
+            margin-top: 0.5rem;
+        }
+
+        .info-section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .info-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-purple);
+            margin-bottom: 0.75rem;
+        }
+
+        .info-list {
+            list-style: none;
+        }
+
+        .info-list li {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            padding: 0.4rem 0;
+            padding-left: 1.25rem;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        .info-list li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent-green);
+            font-weight: bold;
+        }
+
+        .code-block {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 0.75rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--accent-cyan);
+            margin-top: 0.75rem;
+            overflow-x: auto;
+        }
+
+        .code-block .comment {
+            color: var(--text-muted);
+        }
+
+        .code-block .path {
+            color: var(--accent-orange);
+        }
+
+        .legend {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .legend-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 1px;
-            z-index: 10;
         }
 
-        /* Footer */
-        .footer {
-            margin-top: 4rem;
-            padding-top: 2rem;
-            border-top: 1px solid var(--border-color);
-            text-align: center;
+        .legend-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
         }
 
-        .footer-text {
-            font-size: 0.85rem;
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .legend-commit {
+            background: var(--commit-color);
+        }
+
+        .legend-branch {
+            background: var(--branch-color);
+        }
+
+        .legend-head {
+            background: var(--head-color);
+        }
+
+        .status-bar {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
             color: var(--text-muted);
         }
 
-        .footer-text a {
+        .status-bar strong {
             color: var(--accent-cyan);
+        }
+
+        .nav-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
             text-decoration: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            transition: all 0.3s ease;
         }
 
-        .footer-text a:hover {
-            text-decoration: underline;
+        .nav-link:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
         }
 
-        /* Responsive */
-        @media (max-width: 900px) {
-            .workflows-grid {
-                grid-template-columns: 1fr;
-            }
+        .workflow-steps::-webkit-scrollbar {
+            width: 6px;
+        }
 
-            .header h1 {
-                font-size: 2rem;
-            }
+        .workflow-steps::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+            border-radius: 3px;
+        }
 
-            .container {
-                padding: 2rem 1rem;
-            }
+        .workflow-steps::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .workflow-steps::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
         }
     </style>
 </head>
 <body>
-<div class="bg-gradient"></div>
-
-<div class="container">
-    <!-- Header -->
-    <header class="header">
-        <div class="logo">
-            <div class="logo-icon">📊</div>
-        </div>
-        <div class="logo-text">Interactive Learning</div>
-        <h1>Git <span>Distributed Workflows</span></h1>
-        <p class="header-description">
-            Explore interactive visualizations of different Git workflow models used in collaborative software development.
-            Click on any workflow to see step-by-step animations of how code flows between repositories.
-        </p>
-    </header>
-
-    <!-- Workflows Section -->
-    <section class="section">
-        <div class="section-header">
-            <div class="section-icon">🔀</div>
-            <h2 class="section-title">// <span>Workflow Models</span></h2>
-        </div>
-
-        <div class="workflows-grid">
-            <!-- Integration Manager Card -->
-            <div class="workflow-card integration-manager">
-                <div class="card-diagram">
-                    <svg viewBox="0 0 300 140" preserveAspectRatio="xMidYMid meet">
-                        <!-- Mini diagram for Integration Manager -->
-                        <rect x="20" y="20" width="70" height="35" rx="4" fill="#c9a227"/>
-                        <text x="55" y="42" text-anchor="middle" fill="white" font-size="8" font-family="sans-serif">blessed</text>
-
-                        <rect x="20" y="85" width="70" height="35" rx="4" fill="#e05a33"/>
-                        <text x="55" y="107" text-anchor="middle" fill="white" font-size="8" font-family="sans-serif">manager</text>
-
-                        <rect x="115" y="20" width="70" height="35" rx="4" fill="#2a9d8f"/>
-                        <text x="150" y="42" text-anchor="middle" fill="white" font-size="8" font-family="sans-serif">dev public</text>
-
-                        <rect x="210" y="20" width="70" height="35" rx="4" fill="#2a9d8f"/>
-                        <text x="245" y="42" text-anchor="middle" fill="white" font-size="8" font-family="sans-serif">dev public</text>
-
-                        <rect x="115" y="85" width="70" height="35" rx="4" fill="#d4d4d4"/>
-                        <text x="150" y="107" text-anchor="middle" fill="#1a1a1a" font-size="8" font-family="sans-serif">dev private</text>
-
-                        <rect x="210" y="85" width="70" height="35" rx="4" fill="#d4d4d4"/>
-                        <text x="245" y="107" text-anchor="middle" fill="#1a1a1a" font-size="8" font-family="sans-serif">dev private</text>
-
-                        <!-- Arrows -->
-                        <line x1="55" y1="85" x2="55" y2="58" stroke="#6e7681" stroke-width="1.5" marker-end="url(#arrow-mini)"/>
-                        <line x1="90" y1="37" x2="112" y2="37" stroke="#6e7681" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow-mini)"/>
-                        <line x1="150" y1="58" x2="150" y2="82" stroke="#6e7681" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow-mini)"/>
-
-                        <defs>
-                            <marker id="arrow-mini" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-                                <path d="M 0 0 L 6 3 L 0 6 L 1.5 3 Z" fill="#6e7681"/>
-                            </marker>
-                        </defs>
-                    </svg>
-                </div>
-                <div class="card-content">
-                    <span class="card-badge">Interactive</span>
-                    <h3 class="card-title">Integration-Manager Workflow</h3>
-                    <p class="card-description">
-                        A common workflow where one integration manager controls merges to the canonical repository.
-                        Contributors fork, make changes, and submit pull requests. Popular on GitHub and GitLab.
-                    </p>
-                    <div class="card-tags">
-                        <span class="tag">GitHub</span>
-                        <span class="tag">GitLab</span>
-                        <span class="tag">Fork & PR</span>
-                        <span class="tag">6 Steps</span>
-                    </div>
-                    <a href="index.html" class="card-link">
-                        Explore Workflow
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M5 12h14M12 5l7 7-7 7"/>
-                        </svg>
-                    </a>
-                </div>
+    <div class="container">
+        <div class="diagram-panel">
+            <div class="diagram-header">
+                <h1>Git <span>Branching</span> & <span class="highlight">HEAD</span></h1>
+                <p class="diagram-subtitle">Click on steps to visualize how branches and HEAD pointers work</p>
             </div>
+            <div class="diagram-container">
+                <svg class="diagram-svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet">
+                    <!-- Background grid -->
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#21262d" stroke-width="1"/>
+                    </pattern>
+                    <rect width="100%" height="100%" fill="url(#grid)" opacity="0.5"/>
 
-            <!-- Dictator & Lieutenants Card -->
-            <div class="workflow-card dictator-lieutenants">
-                <div class="card-diagram">
-                    <svg viewBox="0 0 300 140" preserveAspectRatio="xMidYMid meet">
-                        <!-- Mini diagram for Dictator & Lieutenants -->
-                        <rect x="20" y="15" width="70" height="35" rx="4" fill="#e05a33"/>
-                        <text x="55" y="37" text-anchor="middle" fill="white" font-size="8" font-family="sans-serif">dictator</text>
+                    <!-- Definitions -->
+                    <defs>
+                        <marker id="arrowhead-gray" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+                            <path d="M 0 0 L 10 5 L 0 10 L 2 5 Z" fill="#6e7681"/>
+                        </marker>
+                        <marker id="arrowhead-green" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+                            <path d="M 0 0 L 10 5 L 0 10 L 2 5 Z" fill="#3fb950"/>
+                        </marker>
+                    </defs>
 
-                        <rect x="210" y="15" width="70" height="35" rx="4" fill="#c9a227"/>
-                        <text x="245" y="37" text-anchor="middle" fill="white" font-size="8" font-family="sans-serif">blessed</text>
+                    <!-- Diagram 1 Label -->
+                    <text class="diagram-label" x="400" y="30">Creating a new branch (git branch testing)</text>
 
-                        <rect x="60" y="60" width="60" height="30" rx="4" fill="#2a9d8f"/>
-                        <text x="90" y="79" text-anchor="middle" fill="white" font-size="7" font-family="sans-serif">lieutenant</text>
+                    <!-- ==================== DIAGRAM 1: Branch Creation ==================== -->
 
-                        <rect x="140" y="60" width="60" height="30" rx="4" fill="#2a9d8f"/>
-                        <text x="170" y="79" text-anchor="middle" fill="white" font-size="7" font-family="sans-serif">lieutenant</text>
+                    <!-- Commits -->
+                    <g id="commit-98ca9">
+                        <rect class="commit-box" x="60" y="200" width="120" height="50"/>
+                        <text class="commit-label" x="120" y="232" text-anchor="middle">98ca9</text>
+                    </g>
 
-                        <rect x="30" y="100" width="55" height="28" rx="4" fill="#d4d4d4"/>
-                        <text x="57" y="118" text-anchor="middle" fill="#1a1a1a" font-size="6" font-family="sans-serif">dev public</text>
+                    <g id="commit-34ac2">
+                        <rect class="commit-box" x="240" y="200" width="120" height="50"/>
+                        <text class="commit-label" x="300" y="232" text-anchor="middle">34ac2</text>
+                    </g>
 
-                        <rect x="122" y="100" width="55" height="28" rx="4" fill="#d4d4d4"/>
-                        <text x="150" y="118" text-anchor="middle" fill="#1a1a1a" font-size="6" font-family="sans-serif">dev public</text>
+                    <g id="commit-f30ab">
+                        <rect class="commit-box" x="420" y="200" width="120" height="50"/>
+                        <text class="commit-label" x="480" y="232" text-anchor="middle">f30ab</text>
+                    </g>
 
-                        <rect x="215" y="100" width="55" height="28" rx="4" fill="#d4d4d4"/>
-                        <text x="242" y="118" text-anchor="middle" fill="#1a1a1a" font-size="6" font-family="sans-serif">dev public</text>
+                    <!-- Commit arrows (pointing backwards to parent) -->
+                    <line id="arrow-f30ab-to-34ac2" class="arrow-line"
+                          x1="420" y1="225" x2="365" y2="225"
+                          marker-end="url(#arrowhead-gray)"/>
 
-                        <!-- Arrows -->
-                        <line x1="93" y1="32" x2="207" y2="32" stroke="#6e7681" stroke-width="1.5" marker-end="url(#arrow-mini2)"/>
-                        <line x1="90" y1="58" x2="70" y2="53" stroke="#6e7681" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow-mini2)"/>
-                        <line x1="57" y1="100" x2="80" y2="92" stroke="#6e7681" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow-mini2)"/>
+                    <line id="arrow-34ac2-to-98ca9" class="arrow-line"
+                          x1="240" y1="225" x2="185" y2="225"
+                          marker-end="url(#arrowhead-gray)"/>
 
-                        <defs>
-                            <marker id="arrow-mini2" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-                                <path d="M 0 0 L 6 3 L 0 6 L 1.5 3 Z" fill="#6e7681"/>
-                            </marker>
-                        </defs>
-                    </svg>
-                </div>
-                <div class="card-content">
-                    <span class="card-badge">Interactive</span>
-                    <h3 class="card-title">Dictator & Lieutenants Workflow</h3>
-                    <p class="card-description">
-                        A hierarchical workflow for large projects with hundreds of collaborators. Lieutenants oversee
-                        specific areas while a benevolent dictator makes final integration decisions. Used by Linux Kernel.
-                    </p>
-                    <div class="card-tags">
-                        <span class="tag">Linux Kernel</span>
-                        <span class="tag">Hierarchical</span>
-                        <span class="tag">Large Teams</span>
-                        <span class="tag">8 Steps</span>
-                    </div>
-                    <a href="dictator-lieutenants.html" class="card-link">
-                        Explore Workflow
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M5 12h14M12 5l7 7-7 7"/>
-                        </svg>
-                    </a>
-                </div>
-            </div>
+                    <!-- Master branch pointer -->
+                    <g id="branch-master">
+                        <rect class="branch-box" x="440" y="80" width="100" height="40"/>
+                        <text class="branch-label" x="490" y="107" text-anchor="middle">master</text>
+                    </g>
 
-            <!-- Basic Git Workflow Card -->
-            <div class="workflow-card basic-git">
-                <div class="card-diagram">
-                    <svg viewBox="0 0 300 140" preserveAspectRatio="xMidYMid meet">
-                        <!-- Mini diagram for Basic Git Workflow -->
-                        <rect x="20" y="30" width="70" height="35" rx="4" fill="#e05a33"/>
-                        <text x="55" y="45" text-anchor="middle" fill="white" font-size="7" font-family="sans-serif">Working</text>
-                        <text x="55" y="57" text-anchor="middle" fill="white" font-size="7" font-family="sans-serif">Directory</text>
+                    <!-- Arrow from master to f30ab -->
+                    <line id="arrow-master-to-f30ab" class="arrow-line"
+                          x1="490" y1="120" x2="490" y2="195"
+                          marker-end="url(#arrowhead-gray)"/>
 
-                        <rect x="115" y="30" width="70" height="35" rx="4" fill="#2a9d8f"/>
-                        <text x="150" y="45" text-anchor="middle" fill="white" font-size="7" font-family="sans-serif">Staging</text>
-                        <text x="150" y="57" text-anchor="middle" fill="white" font-size="7" font-family="sans-serif">Area</text>
+                    <!-- Testing branch pointer -->
+                    <g id="branch-testing">
+                        <rect class="branch-box" x="440" y="290" width="100" height="40"/>
+                        <text class="branch-label" x="490" y="317" text-anchor="middle">testing</text>
+                    </g>
 
-                        <rect x="210" y="30" width="70" height="35" rx="4" fill="#d4d4d4"/>
-                        <text x="245" y="45" text-anchor="middle" fill="#1a1a1a" font-size="7" font-family="sans-serif">.git</text>
-                        <text x="245" y="57" text-anchor="middle" fill="#1a1a1a" font-size="7" font-family="sans-serif">Repository</text>
+                    <!-- Arrow from testing to f30ab -->
+                    <line id="arrow-testing-to-f30ab" class="arrow-line"
+                          x1="490" y1="290" x2="490" y2="255"
+                          marker-end="url(#arrowhead-gray)"/>
 
-                        <!-- Vertical lines -->
-                        <line x1="55" y1="65" x2="55" y2="120" stroke="#30363d" stroke-width="1.5"/>
-                        <line x1="150" y1="65" x2="150" y2="120" stroke="#30363d" stroke-width="1.5"/>
-                        <line x1="245" y1="65" x2="245" y2="120" stroke="#30363d" stroke-width="1.5"/>
+                    <!-- ==================== DIAGRAM 2: HEAD Pointer (initially hidden) ==================== -->
 
-                        <!-- Arrows -->
-                        <polygon points="93,85 93,80 180,80 180,75 185,85 180,95 180,90 93,90" fill="#7a7a7a" opacity="0.6"/>
-                        <polygon points="188,105 188,100 230,100 230,95 235,105 230,115 230,110 188,110" fill="#7a7a7a" opacity="0.6"/>
+                    <!-- HEAD pointer -->
+                    <g id="head-pointer" style="opacity: 0;">
+                        <rect class="head-box" x="600" y="20" width="100" height="40"/>
+                        <text class="branch-label" x="650" y="47" text-anchor="middle">HEAD</text>
+                    </g>
 
-                        <defs>
-                            <marker id="arrow-mini3" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-                                <path d="M 0 0 L 6 3 L 0 6 L 1.5 3 Z" fill="#6e7681"/>
-                            </marker>
-                        </defs>
-                    </svg>
-                </div>
-                <div class="card-content">
-                    <span class="card-badge">Fundamentals</span>
-                    <h3 class="card-title">Basic Git Workflow</h3>
-                    <p class="card-description">
-                        The fundamental three-state workflow of Git: Working Directory, Staging Area, and Repository.
-                        Learn how files move through modified, staged, and committed states.
-                    </p>
-                    <div class="card-tags">
-                        <span class="tag">Fundamentals</span>
-                        <span class="tag">Three States</span>
-                        <span class="tag">Local</span>
-                        <span class="tag">3 Steps</span>
-                    </div>
-                    <a href="basic-git-workflow.html" class="card-link">
-                        Explore Workflow
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M5 12h14M12 5l7 7-7 7"/>
-                        </svg>
-                    </a>
-                </div>
-            </div>
+                    <!-- Arrow from HEAD to master -->
+                    <line id="arrow-head-to-master" class="arrow-line"
+                          x1="650" y1="60" x2="650" y2="100" style="opacity: 0;"
+                          marker-end="url(#arrowhead-gray)"/>
 
-            <!-- Git Branching & HEAD Card -->
-            <div class="workflow-card git-branching">
-                <div class="card-diagram">
-                    <svg viewBox="0 0 300 140" preserveAspectRatio="xMidYMid meet">
-                        <!-- Mini diagram for Git Branching -->
-                        <rect x="30" y="60" width="55" height="30" rx="4" fill="#d4d4d4"/>
-                        <text x="57" y="80" text-anchor="middle" fill="#1a1a1a" font-size="7" font-family="monospace">98ca9</text>
+                    <!-- Adjusted master for HEAD diagram -->
+                    <g id="branch-master-with-head" style="opacity: 0;">
+                        <rect class="branch-box" x="600" y="100" width="100" height="40"/>
+                        <text class="branch-label" x="650" y="127" text-anchor="middle">master</text>
+                    </g>
 
-                        <rect x="100" y="60" width="55" height="30" rx="4" fill="#d4d4d4"/>
-                        <text x="127" y="80" text-anchor="middle" fill="#1a1a1a" font-size="7" font-family="monospace">34ac2</text>
+                    <!-- Arrow from master-with-head to f30ab -->
+                    <line id="arrow-master-head-to-f30ab" class="arrow-line"
+                          x1="650" y1="140" x2="545" y2="210" style="opacity: 0;"
+                          marker-end="url(#arrowhead-gray)"/>
 
-                        <rect x="170" y="60" width="55" height="30" rx="4" fill="#d4d4d4"/>
-                        <text x="197" y="80" text-anchor="middle" fill="#1a1a1a" font-size="7" font-family="monospace">f30ab</text>
+                    <!-- Data packets -->
+                    <circle id="packet-1" class="data-packet" r="8" fill="#3fb950"/>
+                    <circle id="packet-2" class="data-packet" r="8" fill="#c9a227"/>
 
-                        <rect x="240" y="20" width="50" height="25" rx="4" fill="#e05a33"/>
-                        <text x="265" y="37" text-anchor="middle" fill="white" font-size="7" font-family="sans-serif">master</text>
-
-                        <rect x="240" y="95" width="50" height="25" rx="4" fill="#e05a33"/>
-                        <text x="265" y="112" text-anchor="middle" fill="white" font-size="7" font-family="sans-serif">testing</text>
-
-                        <!-- Arrows -->
-                        <line x1="100" y1="75" x2="88" y2="75" stroke="#6e7681" stroke-width="1.5" marker-end="url(#arrow-mini4)"/>
-                        <line x1="170" y1="75" x2="158" y2="75" stroke="#6e7681" stroke-width="1.5" marker-end="url(#arrow-mini4)"/>
-                        <line x1="265" y1="45" x2="210" y2="60" stroke="#6e7681" stroke-width="1.5" marker-end="url(#arrow-mini4)"/>
-                        <line x1="265" y1="95" x2="210" y2="90" stroke="#6e7681" stroke-width="1.5" marker-end="url(#arrow-mini4)"/>
-
-                        <defs>
-                            <marker id="arrow-mini4" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-                                <path d="M 0 0 L 6 3 L 0 6 L 1.5 3 Z" fill="#6e7681"/>
-                            </marker>
-                        </defs>
-                    </svg>
-                </div>
-                <div class="card-content">
-                    <span class="card-badge">Concepts</span>
-                    <h3 class="card-title">Git Branching & HEAD</h3>
-                    <p class="card-description">
-                        Understand how Git branches work as pointers to commits, and how the HEAD pointer
-                        tracks your current branch. Learn why creating a branch doesn't switch to it.
-                    </p>
-                    <div class="card-tags">
-                        <span class="tag">Branching</span>
-                        <span class="tag">HEAD Pointer</span>
-                        <span class="tag">Pointers</span>
-                        <span class="tag">2 Steps</span>
-                    </div>
-                    <a href="git-branching.html" class="card-link">
-                        Explore Workflow
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M5 12h14M12 5l7 7-7 7"/>
-                        </svg>
-                    </a>
-                </div>
-            </div>
-
-            <!-- Placeholder for future content -->
-            <div class="workflow-card coming-soon">
-                <span class="coming-soon-badge">Coming Soon</span>
-                <div class="card-diagram">
-                    <svg viewBox="0 0 300 140" preserveAspectRatio="xMidYMid meet">
-                        <rect x="115" y="50" width="70" height="40" rx="4" fill="#30363d"/>
-                        <text x="150" y="75" text-anchor="middle" fill="#6e7681" font-size="10" font-family="sans-serif">???</text>
-                    </svg>
-                </div>
-                <div class="card-content">
-                    <span class="card-badge">Upcoming</span>
-                    <h3 class="card-title">More Workflows</h3>
-                    <p class="card-description">
-                        Additional workflow models and Git collaboration patterns will be added here.
-                        Stay tuned for more interactive visualizations.
-                    </p>
-                    <div class="card-tags">
-                        <span class="tag">Centralized</span>
-                        <span class="tag">Feature Branch</span>
-                        <span class="tag">Gitflow</span>
-                    </div>
-                </div>
+                </svg>
             </div>
         </div>
-    </section>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <p class="footer-text">
-            Interactive Git Workflow Visualizations • Built for learning distributed version control
-        </p>
-    </footer>
-</div>
+        <div class="instructions-panel">
+            <a href="index.html" class="nav-link">
+                ← Back to All Workflows
+            </a>
+
+            <div class="instructions-header">
+                <h2>// BRANCHING CONCEPTS</h2>
+                <p>Click each step to visualize how Git branches and the HEAD pointer work</p>
+            </div>
+
+            <div class="workflow-steps">
+                <div class="step" data-step="1">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <div class="step-title">Create a New Branch</div>
+                        <div class="step-description">When you create a new branch, a new pointer is created pointing to the same commit you're currently on.</div>
+                        <code class="step-command">git branch testing</code>
+                    </div>
+                </div>
+
+                <div class="step" data-step="2">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <div class="step-title">Understanding HEAD</div>
+                        <div class="step-description">HEAD is a special pointer that tells Git which branch you're currently on. Creating a branch does NOT switch HEAD to the new branch.</div>
+                        <code class="step-command">cat .git/HEAD</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <div class="info-title">// HOW GIT TRACKS BRANCHES</div>
+                <ul class="info-list">
+                    <li>HEAD is a pointer to the current branch reference</li>
+                    <li>Creating a branch does NOT switch HEAD automatically</li>
+                    <li>Branch pointers are stored in <code>.git/refs/heads/</code></li>
+                    <li>Each branch file contains the SHA1 of the latest commit</li>
+                </ul>
+                <div class="code-block">
+                    <span class="comment"># View current HEAD</span><br>
+                    $ cat .git/HEAD<br>
+                    ref: <span class="path">refs/heads/master</span><br><br>
+                    <span class="comment"># View branch pointer</span><br>
+                    $ cat .git/refs/heads/master<br>
+                    <span class="path">f30ab...</span> <span class="comment">(SHA1 hash)</span>
+                </div>
+            </div>
+
+            <div class="legend">
+                <div class="legend-title">Legend</div>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <div class="legend-box legend-commit"></div>
+                        <span>Commit (snapshot)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box legend-branch"></div>
+                        <span>Branch (pointer)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box legend-head"></div>
+                        <span>HEAD (current branch)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-bar">
+                <strong>STATUS:</strong> <span id="status-text">Ready — Click a step to begin</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const { animate } = Motion;
+
+            const steps = document.querySelectorAll('.step');
+            const statusText = document.getElementById('status-text');
+
+            // Track animation state to prevent overlaps
+            let currentStepId = 0;
+            let activeTimeouts = [];
+
+            // Helper to safely wait and check if we should abort
+            const wait = (ms, stepId) => new Promise(resolve => {
+                const timeout = setTimeout(() => {
+                    resolve(currentStepId === stepId);
+                }, ms);
+                activeTimeouts.push(timeout);
+            });
+
+            function resetDiagram() {
+                // 1. Clear all pending timeouts
+                activeTimeouts.forEach(clearTimeout);
+                activeTimeouts = [];
+
+                // 2. Reset all styles and filters
+                document.querySelectorAll('rect').forEach(rect => {
+                    rect.style.filter = 'none';
+                });
+
+                document.querySelectorAll('.arrow-line').forEach(arrow => {
+                    arrow.classList.remove('arrow-active');
+                    arrow.style.opacity = '0.6';
+                });
+
+                // 3. Reset specific element visibility
+                const elementsToHide = [
+                    'head-pointer',
+                    'branch-master-with-head',
+                    'arrow-head-to-master',
+                    'arrow-master-head-to-f30ab',
+                    'packet-1',
+                    'packet-2'
+                ];
+                elementsToHide.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.opacity = '0';
+                });
+
+                // 4. Reset branch visibility to default state
+                const testing = document.getElementById('branch-testing');
+                const testingArrow = document.getElementById('arrow-testing-to-f30ab');
+                if (testing) testing.style.opacity = '1';
+                if (testingArrow) testingArrow.style.opacity = '0.6';
+            }
+
+            async function animatePacket(packetId, startX, startY, endX, endY, stepId) {
+                if (currentStepId !== stepId) return;
+                const packet = document.getElementById(packetId);
+                packet.setAttribute('cx', startX);
+                packet.setAttribute('cy', startY);
+                packet.style.opacity = '1';
+
+                await animate(
+                    (progress) => {
+                        if (currentStepId !== stepId) return;
+                        const x = startX + (endX - startX) * progress;
+                        const y = startY + (endY - startY) * progress;
+                        packet.setAttribute('cx', x);
+                        packet.setAttribute('cy', y);
+                    },
+                    { duration: 0.8, easing: 'ease-in-out' }
+                ).finished;
+
+                packet.style.opacity = '0';
+            }
+
+            const animations = {
+                1: async (stepId) => {
+                    statusText.textContent = 'Creating a new branch...';
+
+                    // Initial state for Step 1
+                    const testingBranch = document.getElementById('branch-testing');
+                    const testingArrow = document.getElementById('arrow-testing-to-f30ab');
+                    testingBranch.style.opacity = '0';
+                    testingArrow.style.opacity = '0';
+
+                    if (!await wait(500, stepId)) return;
+                    highlightElement('commit-f30ab', '#d4d4d4');
+
+                    if (!await wait(500, stepId)) return;
+                    highlightElement('branch-master', '#e05a33');
+                    activateArrow('arrow-master-to-f30ab');
+
+                    if (!await wait(500, stepId)) return;
+                    statusText.textContent = 'New branch pointer created...';
+
+                    await animate(testingBranch, { opacity: 1 }, { duration: 0.5 }).finished;
+                    await animate(testingArrow, { opacity: 0.6 }, { duration: 0.3 }).finished;
+
+                    if (currentStepId === stepId) {
+                        highlightElement('branch-testing', '#e05a33');
+                        activateArrow('arrow-testing-to-f30ab');
+                        await animatePacket('packet-1', 490, 200, 490, 290, stepId);
+                        statusText.textContent = 'Step 1 complete: Both branches point to f30ab';
+                    }
+                },
+
+                2: async (stepId) => {
+                    statusText.textContent = 'Checking HEAD location...';
+
+                    if (!await wait(400, stepId)) return;
+                    const head = document.getElementById('head-pointer');
+                    const headArrow = document.getElementById('arrow-head-to-master');
+                    const masterHead = document.getElementById('branch-master-with-head');
+                    const masterHeadArrow = document.getElementById('arrow-master-head-to-f30ab');
+
+                    await animate(head, { opacity: 1 }, { duration: 0.5 }).finished;
+                    highlightElement('head-pointer', '#c9a227');
+
+                    if (!await wait(400, stepId)) return;
+                    headArrow.style.opacity = '1';
+                    await animate(masterHead, { opacity: 1 }, { duration: 0.5 }).finished;
+                    masterHeadArrow.style.opacity = '1';
+
+                    if (currentStepId === stepId) {
+                        await animatePacket('packet-2', 650, 60, 650, 100, stepId);
+                        highlightElement('commit-f30ab', '#c9a227');
+                        statusText.textContent = 'Step 2 complete: HEAD is attached to master branch.';
+                    }
+                }
+            };
+
+            // Standard helper functions
+            function highlightElement(id, color) {
+                const el = document.getElementById(id);
+                if (el) {
+                    const rect = el.querySelector('rect');
+                    if (rect) rect.style.filter = `drop-shadow(0 0 15px ${color})`;
+                }
+            }
+
+            function activateArrow(id) {
+                const arrow = document.getElementById(id);
+                if (arrow) arrow.style.opacity = '1';
+            }
+
+            steps.forEach(step => {
+                step.addEventListener('click', () => {
+                    const stepNum = parseInt(step.dataset.step);
+                    currentStepId = Date.now(); // Unique ID for this specific click
+
+                    steps.forEach(s => s.classList.remove('active'));
+                    step.classList.add('active');
+
+                    resetDiagram();
+                    if (animations[stepNum]) {
+                        animations[stepNum](currentStepId);
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>
