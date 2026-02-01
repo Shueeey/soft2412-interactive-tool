@@ -739,6 +739,8 @@
                     highlightElement('branch-master', '#e05a33');
                     activateArrow('arrow-master-to-f30ab');
 
+                    highlightElement('branch-testing', '#e05a33')
+
                     if (!await wait(500, stepId)) return;
                     statusText.textContent = 'New branch pointer created...';
 
