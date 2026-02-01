@@ -726,35 +726,41 @@
                 1: async (stepId) => {
                     statusText.textContent = 'Creating a new branch...';
 
-                    // Initial state for Step 1
                     const testingBranch = document.getElementById('branch-testing');
                     const testingArrow = document.getElementById('arrow-testing-to-f30ab');
+
+                    // Hide testing branch initially
                     testingBranch.style.opacity = '0';
                     testingArrow.style.opacity = '0';
 
                     if (!await wait(500, stepId)) return;
+
+                    // Highlight current commit
                     highlightElement('commit-f30ab', '#d4d4d4');
 
                     if (!await wait(500, stepId)) return;
+
+                    // Highlight master branch and its arrow
                     highlightElement('branch-master', '#e05a33');
                     activateArrow('arrow-master-to-f30ab');
 
-                    highlightElement('branch-testing', '#e05a33')
-
                     if (!await wait(500, stepId)) return;
+
                     statusText.textContent = 'New branch pointer created...';
 
+                    // Animate testing branch into view FIRST
                     await animate(testingBranch, { opacity: 1 }, { duration: 0.5 }).finished;
                     await animate(testingArrow, { opacity: 0.6 }, { duration: 0.3 }).finished;
 
-
+                    // THEN apply highlight so it actually renders
                     highlightElement('branch-testing', '#e05a33');
                     activateArrow('arrow-testing-to-f30ab');
+
+                    // Animate data packet from commit to new branch
                     await animatePacket('packet-1', 490, 200, 490, 290, stepId);
+
                     statusText.textContent = 'Step 1 complete: Both branches point to f30ab';
-
                 },
-
                 2: async (stepId) => {
                     statusText.textContent = 'Checking HEAD location...';
 
