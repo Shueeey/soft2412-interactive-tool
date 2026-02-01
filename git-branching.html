@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git Branching & HEAD</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/motion@12.0.0/dist/motion.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --border-color: #30363d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-purple: #a371f7;
+            --accent-orange: #d29922;
+            --accent-red: #f85149;
+            --accent-cyan: #39c5cf;
+            --branch-color: #e05a33;
+            --commit-color: #d4d4d4;
+            --head-color: #c9a227;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .diagram-panel {
+            width: 62.5%;
+            padding: 2rem;
+            position: relative;
+            background:
+                radial-gradient(ellipse at 20% 80%, rgba(224, 90, 51, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(201, 162, 39, 0.08) 0%, transparent 50%),
+                var(--bg-primary);
+        }
+
+        .diagram-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .diagram-header h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.5px;
+        }
+
+        .diagram-header span {
+            color: var(--accent-orange);
+        }
+
+        .diagram-header .highlight {
+            color: var(--head-color);
+        }
+
+        .diagram-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .diagram-container {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 8rem);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .diagram-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .commit-box {
+            fill: var(--commit-color);
+            rx: 6;
+            transition: all 0.3s ease;
+        }
+
+        .branch-box {
+            fill: var(--branch-color);
+            rx: 6;
+            transition: all 0.3s ease;
+        }
+
+        .head-box {
+            fill: var(--head-color);
+            rx: 6;
+            transition: all 0.3s ease;
+        }
+
+        .commit-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
+            font-weight: 600;
+            fill: #1a1a1a;
+        }
+
+        .branch-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            fill: white;
+        }
+
+        .arrow-line {
+            stroke: #6e7681;
+            stroke-width: 2;
+            fill: none;
+            opacity: 0.6;
+            transition: all 0.3s ease;
+        }
+
+        .arrow-active {
+            opacity: 1 !important;
+            stroke: var(--accent-green) !important;
+            stroke-width: 3 !important;
+        }
+
+        .node-highlight {
+            filter: drop-shadow(0 0 15px currentColor);
+        }
+
+        .data-packet {
+            opacity: 0;
+        }
+
+        /* Diagram label */
+        .diagram-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            fill: var(--text-muted);
+            text-anchor: middle;
+        }
+
+        /* Right Panel */
+        .instructions-panel {
+            width: 37.5%;
+            padding: 2rem;
+            background: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .instructions-header {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .instructions-header h2 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--accent-cyan);
+            margin-bottom: 0.5rem;
+        }
+
+        .instructions-header p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .workflow-steps {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .step {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .step::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .step:hover {
+            background: rgba(88, 166, 255, 0.05);
+            border-color: var(--accent-blue);
+            transform: translateX(4px);
+        }
+
+        .step:hover::before {
+            background: var(--accent-blue);
+        }
+
+        .step.active {
+            background: rgba(88, 166, 255, 0.1);
+            border-color: var(--accent-blue);
+        }
+
+        .step.active::before {
+            background: var(--accent-blue);
+            width: 4px;
+        }
+
+        .step-number {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+        }
+
+        .step:hover .step-number,
+        .step.active .step-number {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: var(--bg-primary);
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.35rem;
+        }
+
+        .step-description {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .step-command {
+            display: inline-block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--accent-green);
+            margin-top: 0.5rem;
+        }
+
+        .info-section {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .info-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-purple);
+            margin-bottom: 0.75rem;
+        }
+
+        .info-list {
+            list-style: none;
+        }
+
+        .info-list li {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            padding: 0.4rem 0;
+            padding-left: 1.25rem;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        .info-list li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent-green);
+            font-weight: bold;
+        }
+
+        .code-block {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 0.75rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--accent-cyan);
+            margin-top: 0.75rem;
+            overflow-x: auto;
+        }
+
+        .code-block .comment {
+            color: var(--text-muted);
+        }
+
+        .code-block .path {
+            color: var(--accent-orange);
+        }
+
+        .legend {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--bg-primary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .legend-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .legend-items {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .legend-commit {
+            background: var(--commit-color);
+        }
+
+        .legend-branch {
+            background: var(--branch-color);
+        }
+
+        .legend-head {
+            background: var(--head-color);
+        }
+
+        .status-bar {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .status-bar strong {
+            color: var(--accent-cyan);
+        }
+
+        .nav-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .nav-link:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        .workflow-steps::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .workflow-steps::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+            border-radius: 3px;
+        }
+
+        .workflow-steps::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        .workflow-steps::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="diagram-panel">
+            <div class="diagram-header">
+                <h1>Git <span>Branching</span> & <span class="highlight">HEAD</span></h1>
+                <p class="diagram-subtitle">Click on steps to visualize how branches and HEAD pointers work</p>
+            </div>
+            <div class="diagram-container">
+                <svg class="diagram-svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet">
+                    <!-- Background grid -->
+                    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#21262d" stroke-width="1"/>
+                    </pattern>
+                    <rect width="100%" height="100%" fill="url(#grid)" opacity="0.5"/>
+
+                    <!-- Definitions -->
+                    <defs>
+                        <marker id="arrowhead-gray" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+                            <path d="M 0 0 L 10 5 L 0 10 L 2 5 Z" fill="#6e7681"/>
+                        </marker>
+                        <marker id="arrowhead-green" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+                            <path d="M 0 0 L 10 5 L 0 10 L 2 5 Z" fill="#3fb950"/>
+                        </marker>
+                    </defs>
+
+                    <!-- Diagram 1 Label -->
+                    <text class="diagram-label" x="400" y="30">Creating a new branch (git branch testing)</text>
+
+                    <!-- ==================== DIAGRAM 1: Branch Creation ==================== -->
+                    
+                    <!-- Commits -->
+                    <g id="commit-98ca9">
+                        <rect class="commit-box" x="60" y="200" width="120" height="50"/>
+                        <text class="commit-label" x="120" y="232" text-anchor="middle">98ca9</text>
+                    </g>
+
+                    <g id="commit-34ac2">
+                        <rect class="commit-box" x="240" y="200" width="120" height="50"/>
+                        <text class="commit-label" x="300" y="232" text-anchor="middle">34ac2</text>
+                    </g>
+
+                    <g id="commit-f30ab">
+                        <rect class="commit-box" x="420" y="200" width="120" height="50"/>
+                        <text class="commit-label" x="480" y="232" text-anchor="middle">f30ab</text>
+                    </g>
+
+                    <!-- Commit arrows (pointing backwards to parent) -->
+                    <line id="arrow-f30ab-to-34ac2" class="arrow-line" 
+                          x1="420" y1="225" x2="365" y2="225" 
+                          marker-end="url(#arrowhead-gray)"/>
+                    
+                    <line id="arrow-34ac2-to-98ca9" class="arrow-line" 
+                          x1="240" y1="225" x2="185" y2="225" 
+                          marker-end="url(#arrowhead-gray)"/>
+
+                    <!-- Master branch pointer -->
+                    <g id="branch-master">
+                        <rect class="branch-box" x="440" y="80" width="100" height="40"/>
+                        <text class="branch-label" x="490" y="107" text-anchor="middle">master</text>
+                    </g>
+
+                    <!-- Arrow from master to f30ab -->
+                    <line id="arrow-master-to-f30ab" class="arrow-line" 
+                          x1="490" y1="120" x2="490" y2="195" 
+                          marker-end="url(#arrowhead-gray)"/>
+
+                    <!-- Testing branch pointer -->
+                    <g id="branch-testing">
+                        <rect class="branch-box" x="440" y="290" width="100" height="40"/>
+                        <text class="branch-label" x="490" y="317" text-anchor="middle">testing</text>
+                    </g>
+
+                    <!-- Arrow from testing to f30ab -->
+                    <line id="arrow-testing-to-f30ab" class="arrow-line" 
+                          x1="490" y1="290" x2="490" y2="255" 
+                          marker-end="url(#arrowhead-gray)"/>
+
+                    <!-- ==================== DIAGRAM 2: HEAD Pointer (initially hidden) ==================== -->
+                    
+                    <!-- HEAD pointer -->
+                    <g id="head-pointer" style="opacity: 0;">
+                        <rect class="head-box" x="600" y="20" width="100" height="40"/>
+                        <text class="branch-label" x="650" y="47" text-anchor="middle">HEAD</text>
+                    </g>
+
+                    <!-- Arrow from HEAD to master -->
+                    <line id="arrow-head-to-master" class="arrow-line" 
+                          x1="650" y1="60" x2="650" y2="100" style="opacity: 0;"
+                          marker-end="url(#arrowhead-gray)"/>
+                    
+                    <!-- Adjusted master for HEAD diagram -->
+                    <g id="branch-master-with-head" style="opacity: 0;">
+                        <rect class="branch-box" x="600" y="100" width="100" height="40"/>
+                        <text class="branch-label" x="650" y="127" text-anchor="middle">master</text>
+                    </g>
+
+                    <!-- Arrow from master-with-head to f30ab -->
+                    <line id="arrow-master-head-to-f30ab" class="arrow-line" 
+                          x1="650" y1="140" x2="545" y2="210" style="opacity: 0;"
+                          marker-end="url(#arrowhead-gray)"/>
+
+                    <!-- Data packets -->
+                    <circle id="packet-1" class="data-packet" r="8" fill="#3fb950"/>
+                    <circle id="packet-2" class="data-packet" r="8" fill="#c9a227"/>
+
+                </svg>
+            </div>
+        </div>
+
+        <div class="instructions-panel">
+            <a href="index.html" class="nav-link">
+                ← Back to All Workflows
+            </a>
+
+            <div class="instructions-header">
+                <h2>// BRANCHING CONCEPTS</h2>
+                <p>Click each step to visualize how Git branches and the HEAD pointer work</p>
+            </div>
+
+            <div class="workflow-steps">
+                <div class="step" data-step="1">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <div class="step-title">Create a New Branch</div>
+                        <div class="step-description">When you create a new branch, a new pointer is created pointing to the same commit you're currently on.</div>
+                        <code class="step-command">git branch testing</code>
+                    </div>
+                </div>
+
+                <div class="step" data-step="2">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <div class="step-title">Understanding HEAD</div>
+                        <div class="step-description">HEAD is a special pointer that tells Git which branch you're currently on. Creating a branch does NOT switch HEAD to the new branch.</div>
+                        <code class="step-command">cat .git/HEAD</code>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <div class="info-title">// HOW GIT TRACKS BRANCHES</div>
+                <ul class="info-list">
+                    <li>HEAD is a pointer to the current branch reference</li>
+                    <li>Creating a branch does NOT switch HEAD automatically</li>
+                    <li>Branch pointers are stored in <code>.git/refs/heads/</code></li>
+                    <li>Each branch file contains the SHA1 of the latest commit</li>
+                </ul>
+                <div class="code-block">
+                    <span class="comment"># View current HEAD</span><br>
+                    $ cat .git/HEAD<br>
+                    ref: <span class="path">refs/heads/master</span><br><br>
+                    <span class="comment"># View branch pointer</span><br>
+                    $ cat .git/refs/heads/master<br>
+                    <span class="path">f30ab...</span> <span class="comment">(SHA1 hash)</span>
+                </div>
+            </div>
+
+            <div class="legend">
+                <div class="legend-title">Legend</div>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <div class="legend-box legend-commit"></div>
+                        <span>Commit (snapshot)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box legend-branch"></div>
+                        <span>Branch (pointer)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box legend-head"></div>
+                        <span>HEAD (current branch)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-bar">
+                <strong>STATUS:</strong> <span id="status-text">Ready — Click a step to begin</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const { animate } = Motion;
+            
+            const steps = document.querySelectorAll('.step');
+            const statusText = document.getElementById('status-text');
+
+            function highlightElement(elementId, color) {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    const box = element.querySelector('rect');
+                    if (box) {
+                        box.style.filter = `drop-shadow(0 0 20px ${color})`;
+                    }
+                }
+            }
+
+            function showElement(elementId) {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.style.opacity = '1';
+                }
+            }
+
+            function hideElement(elementId) {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.style.opacity = '0';
+                }
+            }
+
+            function activateArrow(arrowId) {
+                const arrow = document.getElementById(arrowId);
+                if (arrow) {
+                    arrow.classList.add('arrow-active');
+                    arrow.style.opacity = '1';
+                }
+            }
+
+            function resetDiagram() {
+                // Reset all highlights
+                document.querySelectorAll('rect').forEach(rect => {
+                    rect.style.filter = 'none';
+                });
+
+                // Reset arrows
+                document.querySelectorAll('.arrow-line').forEach(arrow => {
+                    arrow.classList.remove('arrow-active');
+                    arrow.style.opacity = '0.6';
+                });
+
+                // Hide HEAD elements
+                hideElement('head-pointer');
+                hideElement('branch-master-with-head');
+                document.getElementById('arrow-head-to-master').style.opacity = '0';
+                document.getElementById('arrow-master-head-to-f30ab').style.opacity = '0';
+
+                // Reset packets
+                document.querySelectorAll('.data-packet').forEach(packet => {
+                    packet.style.opacity = '0';
+                });
+
+                // Show testing branch
+                showElement('branch-testing');
+                document.getElementById('arrow-testing-to-f30ab').style.opacity = '0.6';
+            }
+
+            async function animatePacket(packet, startX, startY, endX, endY, duration = 1) {
+                packet.setAttribute('cx', startX);
+                packet.setAttribute('cy', startY);
+                packet.style.opacity = '1';
+                
+                await animate(
+                    (progress) => {
+                        const x = startX + (endX - startX) * progress;
+                        const y = startY + (endY - startY) * progress;
+                        packet.setAttribute('cx', x);
+                        packet.setAttribute('cy', y);
+                    },
+                    { duration, easing: 'ease-in-out' }
+                ).finished;
+                
+                packet.style.opacity = '0';
+            }
+
+            const animations = {
+                1: async () => {
+                    statusText.textContent = 'Creating a new branch...';
+                    resetDiagram();
+
+                    // First hide testing branch
+                    hideElement('branch-testing');
+                    document.getElementById('arrow-testing-to-f30ab').style.opacity = '0';
+
+                    // Highlight current commit
+                    highlightElement('commit-f30ab', '#d4d4d4');
+                    await new Promise(r => setTimeout(r, 500));
+
+                    // Highlight master branch
+                    highlightElement('branch-master', '#e05a33');
+                    activateArrow('arrow-master-to-f30ab');
+                    await new Promise(r => setTimeout(r, 500));
+
+                    // Show testing branch appearing
+                    statusText.textContent = 'New branch pointer created...';
+                    
+                    const testingBranch = document.getElementById('branch-testing');
+                    const testingArrow = document.getElementById('arrow-testing-to-f30ab');
+                    
+                    testingBranch.style.opacity = '0';
+                    testingArrow.style.opacity = '0';
+                    
+                    await animate(testingBranch, { opacity: [0, 1] }, { duration: 0.8 }).finished;
+                    await animate(testingArrow, { opacity: [0, 0.6] }, { duration: 0.5 }).finished;
+
+                    highlightElement('branch-testing', '#e05a33');
+                    activateArrow('arrow-testing-to-f30ab');
+
+                    // Animate packet from master's commit to testing
+                    const packet = document.getElementById('packet-1');
+                    await animatePacket(packet, 490, 200, 490, 290, 0.8);
+
+                    statusText.textContent = 'Step 1 complete: Both branches now point to the same commit (f30ab)';
+                },
+
+                2: async () => {
+                    statusText.textContent = 'Understanding the HEAD pointer...';
+                    resetDiagram();
+
+                    // Show the diagram with HEAD
+                    await new Promise(r => setTimeout(r, 300));
+
+                    // Show HEAD pointer
+                    const headPointer = document.getElementById('head-pointer');
+                    const headArrow = document.getElementById('arrow-head-to-master');
+                    const masterWithHead = document.getElementById('branch-master-with-head');
+                    const masterHeadArrow = document.getElementById('arrow-master-head-to-f30ab');
+
+                    await animate(headPointer, { opacity: [0, 1] }, { duration: 0.6 }).finished;
+                    highlightElement('head-pointer', '#c9a227');
+
+                    await new Promise(r => setTimeout(r, 300));
+                    
+                    // Show arrow from HEAD to master
+                    headArrow.style.opacity = '1';
+                    await animate(headArrow, { opacity: [0, 0.6] }, { duration: 0.4 }).finished;
+
+                    // Show master with head
+                    await animate(masterWithHead, { opacity: [0, 1] }, { duration: 0.5 }).finished;
+                    highlightElement('branch-master-with-head', '#e05a33');
+
+                    // Show arrow from master to commit
+                    masterHeadArrow.style.opacity = '1';
+                    await animate(masterHeadArrow, { opacity: [0, 0.6] }, { duration: 0.4 }).finished;
+
+                    // Animate HEAD packet flowing down
+                    const packet = document.getElementById('packet-2');
+                    await animatePacket(packet, 650, 60, 650, 100, 0.5);
+                    await animatePacket(packet, 650, 140, 545, 210, 0.7);
+
+                    // Highlight the commit it points to
+                    highlightElement('commit-f30ab', '#c9a227');
+
+                    // Also highlight testing to show it exists but HEAD isn't on it
+                    highlightElement('branch-testing', '#e05a33');
+                    
+                    statusText.textContent = 'Step 2 complete: HEAD points to master, not testing (creating a branch doesn\'t switch to it)';
+                }
+            };
+
+            steps.forEach(step => {
+                step.addEventListener('click', async () => {
+                    const stepNum = parseInt(step.dataset.step);
+
+                    steps.forEach(s => s.classList.remove('active'));
+                    step.classList.add('active');
+
+                    resetDiagram();
+
+                    if (animations[stepNum]) {
+                        await animations[stepNum]();
+                    }
+                });
+            });
+
+            statusText.textContent = 'Ready — Click a step to begin';
+        });
+    </script>
+</body>
+</html>
