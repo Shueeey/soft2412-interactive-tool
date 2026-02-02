@@ -762,25 +762,27 @@
                     statusText.textContent = 'Checking HEAD location...';
 
                     if (!await wait(400, stepId)) return;
+
                     const head = document.getElementById('head-pointer');
                     const headArrow = document.getElementById('arrow-head-to-master');
-                    const masterHead = document.getElementById('branch-master-with-head');
-                    const masterHeadArrow = document.getElementById('arrow-master-head-to-f30ab');
+                    const master = document.getElementById('branch-master');
 
-                    await animate(head, { opacity: 1 }, { duration: 0.5 }).finished;
+                    // Show HEAD
+                    head.style.opacity = '1';
                     highlightElement('head-pointer', '#c9a227');
 
                     if (!await wait(400, stepId)) return;
-                    headArrow.style.opacity = '1';
-                    await animate(masterHead, { opacity: 1 }, { duration: 0.5 }).finished;
-                    masterHeadArrow.style.opacity = '1';
 
-                    if (currentStepId === stepId) {
-                        await animatePacket('packet-2', 650, 60, 650, 100, stepId);
-                        highlightElement('commit-f30ab', '#c9a227');
-                        statusText.textContent = 'Step 2 complete: HEAD is attached to master branch.';
-                    }
+                    // Show arrow HEAD → master ONLY
+                    headArrow.style.opacity = '1';
+                    activateArrow('arrow-head-to-master');
+
+                    // Highlight master to emphasize attachment
+                    highlightElement('branch-master', '#e05a33');
+
+                    statusText.textContent = 'Step 2 complete: HEAD points to the master branch.';
                 }
+
             };
 
             // Standard helper functions
